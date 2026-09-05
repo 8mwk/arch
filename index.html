@@ -10,11 +10,27 @@
 </head>
 <body>
 
-<div class="boot-overlay" id="boot">
-  <div class="boot-logo">BAD APPLE</div>
-  <div class="boot-sub">arch linux // portfolio os</div>
-  <div class="boot-bar"><div class="boot-fill" id="boot-fill"></div></div>
-  <div class="boot-hint">click to skip</div>
+<div class="boot-kernel" id="boot-kernel">
+  <div id="kernel-log"></div>
+  <div class="boot-skip">click to skip</div>
+</div>
+
+<div class="boot-login" id="boot-login" hidden>
+  <div class="login-clock">
+    <div class="login-time" id="login-time">22:42</div>
+    <div class="login-date" id="login-date">Sat, Sep 5</div>
+  </div>
+  <div class="login-card">
+    <div class="login-avatar">△</div>
+    <div class="login-user">dazai</div>
+    <input type="password" id="login-pass" class="login-pass" placeholder="Password" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Password (any value works)">
+    <button class="login-btn" id="login-btn">Log In</button>
+    <div class="login-hint">any password works — press Enter</div>
+  </div>
+  <div class="login-bottom">
+    <span class="login-session">⬡ Hyprland</span>
+    <span class="login-power" title="This button is decorative">⏻</span>
+  </div>
 </div>
 
 <div class="app">
@@ -49,48 +65,126 @@
 
   <div class="desktop">
 
-    <!-- ================= WORKSPACE 1 ================= -->
+    <!-- ================= WORKSPACE 1 — Desktop ================= -->
     <section class="workspace active" id="ws-1">
-      <div class="ws1-sidebar" id="ws1-nav">
-        <button class="ws1-nav active" data-panel="terminal">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3"/><path d="M13 15h4"/></svg>
-          Terminal
-        </button>
-        <button class="ws1-nav" data-panel="about">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
-          About
-        </button>
-        <button class="ws1-nav" data-panel="projects">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          Projects
-        </button>
-        <button class="ws1-nav" data-panel="skills">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9c.2.6.7 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
-          Skills
-        </button>
-        <button class="ws1-nav" data-panel="experience">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-          Experience
-        </button>
-        <button class="ws1-nav" data-panel="contact">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
-          Contact
-        </button>
-        <button class="ws1-nav" id="ws1-github">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.36 1.09 2.93.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .26.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
-          GitHub
-        </button>
-      </div>
-      <div class="ws1-main">
-        <div class="ws1-mark">△</div>
-        <div class="ws1-brand-text">archlinux</div>
-        <div class="ws1-tagline">A simple, lightweight portfolio built for <span style="color:var(--green)">performance</span>.</div>
-        <div class="window ws1-window">
+      <div class="ws1-desktop">
+        <div class="ws1-wallpaper" id="ws1-wallpaper" aria-hidden="true">
+          <svg viewBox="0 0 800 300" preserveAspectRatio="none">
+            <polygon points="0,300 0,190 110,100 240,205 370,70 510,195 640,115 800,215 800,300" fill="#0f2018"></polygon>
+            <polygon points="0,300 0,240 160,165 310,235 460,150 610,235 800,180 800,300" fill="#0a1810" opacity=".85"></polygon>
+          </svg>
+        </div>
+
+        <div class="ws1-icons-wrap">
+          <div class="ws1-icons-label">Home</div>
+          <div class="ws1-icongrid" id="ws1-icongrid">
+            <button class="ws1-icon" data-key="about"><span class="di-folder"></span><span class="di-label">About</span></button>
+            <button class="ws1-icon" data-key="projects"><span class="di-folder"></span><span class="di-label">Projects</span></button>
+            <button class="ws1-icon" data-key="skills"><span class="di-folder"></span><span class="di-label">Skills</span></button>
+            <button class="ws1-icon" data-key="experience"><span class="di-folder"></span><span class="di-label">Experience</span></button>
+            <button class="ws1-icon" data-key="contact"><span class="di-folder"></span><span class="di-label">Contact</span></button>
+            <button class="ws1-icon" data-key="certificates"><span class="di-folder"></span><span class="di-label">Certificates</span></button>
+            <button class="ws1-icon" data-key="readme"><span class="di-file"></span><span class="di-label">README.md</span></button>
+            <button class="ws1-icon" id="ws1-icon-github"><span class="di-file di-link"></span><span class="di-label">GitHub</span></button>
+          </div>
+        </div>
+
+        <div class="ws1-widgets" aria-hidden="false">
+          <div class="conky">
+            <h5>System Monitor</h5>
+            <div class="bar-row"><span class="bar-label">CPU</span><span class="bar-track"><span class="bar-fill" id="ws1-bar-cpu"></span></span><span class="bar-val" id="ws1-val-cpu">8%</span></div>
+            <div class="bar-row"><span class="bar-label">RAM</span><span class="bar-track"><span class="bar-fill" style="width:31%"></span></span><span class="bar-val">2.4G/7.8G</span></div>
+          </div>
+          <div class="conky">
+            <h5>Status</h5>
+            <div class="presence-row"><span class="presence-dot online"></span>dazai — <span class="text-dim">Available</span></div>
+            <div class="presence-activity">Building Discord bots</div>
+          </div>
+          <div class="conky">
+            <h5>Skill Areas</h5>
+            <div id="ws1-skillbars"><!-- injected --></div>
+          </div>
+        </div>
+
+        <div class="ws1-greeting" id="ws1-greeting">
+          <span class="greeting-icon" id="greeting-icon">☀</span>
+          <div class="greeting-text">
+            <div class="greeting-big" id="greeting-big">Good afternoon</div>
+            <div class="greeting-sub">Open to freelance &amp; collab work</div>
+          </div>
+        </div>
+
+        <div class="window ws1-preview" id="ws1-preview" hidden>
           <div class="window-titlebar">
             <span class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
-            <span>dazai@archlinux:~</span>
+            <span id="ws1-preview-title">about</span>
+            <button class="ws1-preview-close" aria-label="Close">✕</button>
           </div>
-          <div class="window-body" id="ws1-body"><!-- injected --></div>
+          <div class="window-body" id="ws1-preview-body"><!-- injected --></div>
+        </div>
+
+        <div class="ws1-startmenu" id="ws1-startmenu" hidden>
+          <button class="startmenu-item" data-key="about">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+            About
+          </button>
+          <button class="startmenu-item" data-key="projects">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Projects
+          </button>
+          <button class="startmenu-item" data-key="skills">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9c.2.6.7 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+            Skills
+          </button>
+          <button class="startmenu-item" data-key="experience">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            Experience
+          </button>
+          <button class="startmenu-item" data-key="certificates">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M8.5 13.5 7 22l5-3 5 3-1.5-8.5"/></svg>
+            Certificates
+          </button>
+          <div class="startmenu-sep"></div>
+          <button class="startmenu-item" data-ws="3">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3"/><path d="M13 15h4"/></svg>
+            Terminal Emulator
+          </button>
+          <button class="startmenu-item" data-ws="4">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>
+            File Manager
+          </button>
+          <button class="startmenu-item" data-ws="5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+            Dashboard
+          </button>
+          <div class="startmenu-sep"></div>
+          <button class="startmenu-item" data-key="contact">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+            Contact
+          </button>
+          <button class="startmenu-item" id="ws1-menu-github">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.36 1.09 2.93.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .26.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
+            GitHub
+          </button>
+        </div>
+
+        <div class="ws1-dock">
+          <button class="dock-btn ws1-menu-btn" id="ws1-menu-btn" title="Applications">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 2 19h20L12 2z"/></svg>
+          </button>
+          <span class="dock-sep"></span>
+          <button class="dock-btn" data-ws="3" title="Terminal">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3"/><path d="M13 15h4"/></svg>
+          </button>
+          <button class="dock-btn" data-ws="4" title="Files">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>
+          </button>
+          <button class="dock-btn" data-ws="5" title="Dashboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          </button>
+          <button class="dock-btn" id="ws1-dock-github" title="GitHub">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.36 1.09 2.93.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .26.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
+          </button>
         </div>
       </div>
     </section>

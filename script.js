@@ -108,20 +108,71 @@
       </div>`;
   }
 
-  /* ---------------- boot sequence ---------------- */
-  const boot = document.getElementById("boot");
-  const bootFill = document.getElementById("boot-fill");
-  let bootPct = 0;
-  function finishBoot(){
-    boot.classList.add("done");
-    setTimeout(()=>{ boot.style.display="none"; }, 550);
+  /* ---------------- boot sequence: kernel log ---------------- */
+  const state = { booted:false };
+  const kernelOverlay = document.getElementById("boot-kernel");
+  const kernelLog = document.getElementById("kernel-log");
+  const loginOverlay = document.getElementById("boot-login");
+  const loginPass = document.getElementById("login-pass");
+  const loginBtn = document.getElementById("login-btn");
+
+  const KERNEL_LINES = [
+    "[    0.000000] Booting Linux on physical CPU 0x0000000000 [0x413fd0c1]",
+    "[    0.000000] Linux version 6.8.9-arch1-1 (linux@archlinux) #1 SMP PREEMPT_DYNAMIC",
+    "[    0.000000] Command line: BOOT_IMAGE=/vmlinuz-linux root=UUID=3f2a-91cd rw quiet",
+    "[    0.041233] ACPI: Core revision 20230628",
+    "[    0.203481] Kernel command line contains ftrace filter",
+    "[    0.512044] Initializing cgroup subsys cpuset",
+    "[    0.876120] Freeing initrd memory: 15436K",
+    "[    1.203441] Loading Arch Linux kernel modules&hellip;",
+    '[ <span class="boot-ok">OK</span> ] Started Journal Service.',
+    '[ <span class="boot-ok">OK</span> ] Mounted /boot.',
+    '[ <span class="boot-ok">OK</span> ] Started udev Kernel Device Manager.',
+    '[ <span class="boot-ok">OK</span> ] Reached target Local File Systems.',
+    '[ <span class="boot-ok">OK</span> ] Started Load/Save Random Seed.',
+    '[ <span class="boot-ok">OK</span> ] Started Network Manager.',
+    '[ <span class="boot-ok">OK</span> ] Started Bluetooth Service.',
+    '[ <span class="boot-ok">OK</span> ] Reached target Network.',
+    '[ <span class="boot-ok">OK</span> ] Started NTP Client/Server.',
+    '[ <span class="boot-ok">OK</span> ] Reached target System Time Synchronized.',
+    '[ <span class="boot-ok">OK</span> ] Started Hyprland Session Manager.',
+    '[ <span class="boot-ok">OK</span> ] Reached target Graphical Interface.',
+    "Starting Simple Desktop Display Manager&hellip;",
+    '[ <span class="boot-ok">OK</span> ] Started Simple Desktop Display Manager.'
+  ];
+
+  let kIdx = 0;
+  function printNextKernelLine(){
+    if(kIdx >= KERNEL_LINES.length){
+      setTimeout(showLogin, 450);
+      return;
+    }
+    kernelLog.insertAdjacentHTML("beforeend", KERNEL_LINES[kIdx] + "<br>");
+    kernelLog.scrollTop = kernelLog.scrollHeight;
+    kIdx++;
+    const delay = kIdx < 8 ? 30 + Math.random()*30 : 95 + Math.random()*90;
+    setTimeout(printNextKernelLine, delay);
   }
-  const bootTimer = setInterval(()=>{
-    bootPct += 8 + Math.random()*10;
-    if(bootPct >= 100){ bootPct = 100; bootFill.style.width = "100%"; clearInterval(bootTimer); finishBoot(); }
-    else bootFill.style.width = bootPct + "%";
-  }, 90);
-  boot.addEventListener("click", ()=>{ clearInterval(bootTimer); finishBoot(); });
+
+  function showLogin(){
+    kernelOverlay.classList.add("hide");
+    setTimeout(()=>{ kernelOverlay.style.display = "none"; }, 380);
+    loginOverlay.hidden = false;
+    loginPass.focus();
+  }
+
+  function completeLogin(){
+    if(state.booted) return;
+    state.booted = true;
+    loginOverlay.classList.add("done");
+    setTimeout(()=>{ loginOverlay.style.display = "none"; }, 550);
+  }
+
+  kernelOverlay.addEventListener("click", ()=>{ kIdx = KERNEL_LINES.length; showLogin(); });
+  loginBtn.addEventListener("click", completeLogin);
+  loginPass.addEventListener("keydown", (e)=>{ if(e.key === "Enter") completeLogin(); });
+
+  setTimeout(printNextKernelLine, 300);
 
   /* ---------------- workspace switching ---------------- */
   function setWorkspace(n){
@@ -136,20 +187,28 @@
   document.getElementById("ws2-contact").addEventListener("click", ()=>setWorkspace(1));
 
   window.addEventListener("keydown", (e)=>{
+    if(!state.booted) return;
     if(document.activeElement && document.activeElement.tagName === "INPUT") return;
     if(e.key >= "1" && e.key <= "5") setWorkspace(e.key);
   });
 
   /* ---------------- clock + stats ---------------- */
+  const WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   function tick(){
     const d = new Date();
     const hh = String(d.getHours()).padStart(2,"0");
     const mm = String(d.getMinutes()).padStart(2,"0");
     document.querySelectorAll(".clock").forEach(el=>el.textContent = `${hh}:${mm}`);
+    const loginTime = document.getElementById("login-time");
+    const loginDate = document.getElementById("login-date");
+    if(loginTime) loginTime.textContent = `${hh}:${mm}`;
+    if(loginDate) loginDate.textContent = `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
     const nfUp = document.getElementById("nf-uptime");
     if(nfUp) nfUp.textContent = uptimeShort();
     const valUp = document.getElementById("val-uptime");
     if(valUp) valUp.textContent = uptimeShort();
+    if(typeof updateGreeting === "function") updateGreeting();
   }
   tick();
   setInterval(tick, 1000);
@@ -157,30 +216,81 @@
   function randomStats(){
     const cpu = 3 + Math.floor(Math.random()*14);
     document.getElementById("stat-cpu").textContent = `Cpu ${cpu}%`;
-    const barCpu = document.getElementById("bar-cpu");
-    const valCpu = document.getElementById("val-cpu");
-    if(barCpu){ barCpu.style.width = cpu + "%"; }
-    if(valCpu){ valCpu.textContent = cpu + "%"; }
+    [document.getElementById("bar-cpu"), document.getElementById("ws1-bar-cpu")].forEach(el=>{ if(el) el.style.width = cpu + "%"; });
+    [document.getElementById("val-cpu"), document.getElementById("ws1-val-cpu")].forEach(el=>{ if(el) el.textContent = cpu + "%"; });
   }
   randomStats();
   setInterval(randomStats, 3500);
 
-  /* ---------------- workspace 1: sidebar nav ---------------- */
-  const ws1Body = document.getElementById("ws1-body");
-  ws1Body.innerHTML = neofetchHTML();
-  document.querySelectorAll(".ws1-nav[data-panel]").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      document.querySelectorAll(".ws1-nav[data-panel]").forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active");
-      const key = btn.dataset.panel;
-      if(key === "terminal"){
-        ws1Body.innerHTML = neofetchHTML();
-      } else {
-        ws1Body.innerHTML = `<div><span class="nf-label">$</span> cat ${key}.txt</div><br>` + contentHTML(key);
-      }
+  /* ---------------- workspace 1: desktop icons + widgets ---------------- */
+  const ws1Preview = document.getElementById("ws1-preview");
+  const ws1PreviewTitle = document.getElementById("ws1-preview-title");
+  const ws1PreviewBody = document.getElementById("ws1-preview-body");
+  function openWs1Preview(key){
+    ws1PreviewTitle.textContent = key === "readme" ? "README.md" : `~/${key}`;
+    ws1PreviewBody.innerHTML = contentHTML(key);
+    ws1Preview.hidden = false;
+  }
+  document.querySelectorAll(".ws1-icon[data-key]").forEach(el=>{
+    el.addEventListener("click", ()=>openWs1Preview(el.dataset.key));
+  });
+  document.querySelector(".ws1-preview-close").addEventListener("click", ()=>{ ws1Preview.hidden = true; });
+  document.getElementById("ws1-icon-github").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
+  document.getElementById("ws1-dock-github").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
+
+  /* start menu (Applications launcher) */
+  const menuBtn = document.getElementById("ws1-menu-btn");
+  const startMenu = document.getElementById("ws1-startmenu");
+  menuBtn.addEventListener("click", (e)=>{
+    e.stopPropagation();
+    const willShow = startMenu.hidden;
+    startMenu.hidden = !willShow;
+    menuBtn.classList.toggle("active", willShow);
+  });
+  document.addEventListener("click", (e)=>{
+    if(!startMenu.hidden && !startMenu.contains(e.target) && e.target !== menuBtn){
+      startMenu.hidden = true;
+      menuBtn.classList.remove("active");
+    }
+  });
+  startMenu.querySelectorAll(".startmenu-item[data-key]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      openWs1Preview(el.dataset.key);
+      startMenu.hidden = true;
+      menuBtn.classList.remove("active");
     });
   });
-  document.getElementById("ws1-github").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
+  startMenu.querySelectorAll(".startmenu-item[data-ws]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      document.querySelector(`.ws-pill[data-ws="${el.dataset.ws}"]`)?.click();
+      startMenu.hidden = true;
+      menuBtn.classList.remove("active");
+    });
+  });
+  document.getElementById("ws1-menu-github").addEventListener("click", ()=>{
+    window.open("https://github.com/8mwk","_blank");
+    startMenu.hidden = true;
+    menuBtn.classList.remove("active");
+  });
+
+  document.getElementById("ws1-skillbars").innerHTML = Object.entries(CONTENT.skills).map(([cat,items])=>{
+    const max = Math.max(...Object.values(CONTENT.skills).map(v=>v.length));
+    const pct = Math.round(items.length / max * 100);
+    return `<div class="skillbar-row"><span class="bar-label">${cat}</span><span class="bar-track"><span class="bar-fill" style="width:${pct}%"></span></span><span class="bar-val">${items.length} tools</span></div>`;
+  }).join("");
+
+  function updateGreeting(){
+    const h = new Date().getHours();
+    const icon = document.getElementById("greeting-icon");
+    const big = document.getElementById("greeting-big");
+    if(!icon || !big) return;
+    if(h < 5){ icon.textContent = "☾"; big.textContent = "Still up"; }
+    else if(h < 12){ icon.textContent = "☀"; big.textContent = "Good morning"; }
+    else if(h < 18){ icon.textContent = "☀"; big.textContent = "Good afternoon"; }
+    else if(h < 21){ icon.textContent = "☾"; big.textContent = "Good evening"; }
+    else { icon.textContent = "☾"; big.textContent = "Good night"; }
+  }
+  updateGreeting();
 
   /* ---------------- workspace 2: whoami + projects ---------------- */
   document.getElementById("ws2-body").innerHTML = `
@@ -208,9 +318,29 @@
     return [
       ["about","About me"], ["skills","My skills"], ["projects","My projects"],
       ["experience","Experience"], ["contact","Contact me"], ["socials","Social links"],
-      ["neofetch","System info"], ["ls","List sections"], ["clear","Clear screen"]
+      ["neofetch","System info"], ["ls","List sections"], ["clear","Clear screen"],
+      ["wallpaper <url>","Set desktop wallpaper"]
     ].map(([c,d])=>`  <span class="nf-label">${c}</span>${" ".repeat(Math.max(1,12-c.length))}- ${d}`).join("<br>");
   }
+  const WALLPAPER_KEY = "dazai_wallpaper_url";
+  function setWallpaper(url){
+    const wp = document.getElementById("ws1-wallpaper");
+    if(!wp) return;
+    wp.style.backgroundImage = `url("${url}")`;
+    wp.classList.add("custom-bg");
+  }
+  function resetWallpaper(){
+    const wp = document.getElementById("ws1-wallpaper");
+    if(!wp) return;
+    wp.style.backgroundImage = "";
+    wp.classList.remove("custom-bg");
+  }
+  (function restoreWallpaper(){
+    try{
+      const saved = localStorage.getItem(WALLPAPER_KEY);
+      if(saved) setWallpaper(saved);
+    }catch(e){ /* localStorage unavailable, ignore */ }
+  })();
   function runCommand(raw){
     const cmd = raw.trim();
     printLine(`<span class="ws3-prompt">dazai@portfolio:~$</span> ${esc(cmd)}`);
@@ -229,6 +359,26 @@
       case "clear": ws3Log.innerHTML = ""; break;
       case "sudo": printLine("Nice try. This incident will be reported to /dev/null."); break;
       case "date": printLine(new Date().toString()); break;
+      case "wallpaper": {
+        const arg = cmd.slice(base.length).trim();
+        if(!arg || arg === "reset" || arg === "clear" || arg === "default"){
+          resetWallpaper();
+          try{ localStorage.removeItem(WALLPAPER_KEY); }catch(e){}
+          printLine(arg ? "Wallpaper reset to default." : "Usage: wallpaper &lt;url&gt;  (or 'wallpaper reset')");
+        } else if(!/^https?:\/\/.+\..+/i.test(arg)){
+          printLine(`wallpaper: not a valid url: ${esc(arg)}`);
+        } else {
+          const img = new Image();
+          img.onload = ()=>{
+            setWallpaper(arg);
+            try{ localStorage.setItem(WALLPAPER_KEY, arg); }catch(e){}
+            printLine("Wallpaper updated. (Switch to the Home workspace to see it.)");
+          };
+          img.onerror = ()=>{ printLine(`wallpaper: couldn't load image from ${esc(arg)}`); };
+          img.src = arg;
+        }
+        break;
+      }
       default: printLine(`zsh: command not found: ${esc(base)}`);
     }
   }
