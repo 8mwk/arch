@@ -199,6 +199,7 @@
     const target = document.getElementById("ws-"+n);
     if(target) target.classList.add("active");
     document.querySelectorAll(".ws-pill").forEach(p=>p.classList.toggle("active", p.dataset.ws === String(n)));
+    document.body.classList.toggle("explorer-active", String(n) === "4");
   }
   document.querySelectorAll(".ws-pill").forEach(p=>p.addEventListener("click", ()=>setWorkspace(p.dataset.ws)));
   document.querySelectorAll(".dock-btn[data-ws]").forEach(b=>b.addEventListener("click", ()=>setWorkspace(b.dataset.ws)));
@@ -406,7 +407,7 @@
   document.getElementById("ws-3").addEventListener("click", ()=>ws3Input.focus());
   document.getElementById("ws3-side-body").innerHTML = neofetchHTML();
 
-  /* ---------------- workspace 4: file manager ---------------- */
+  /* ---------------- workspace 4: file manager (Explorer skin) ---------------- */
   const ws4Preview = document.getElementById("ws4-preview");
   function showPreview(key){
     ws4Preview.hidden = false;
@@ -414,8 +415,12 @@
     ws4Preview.innerHTML = `<span class="close" role="button" tabindex="0">✕</span><h4>${title}</h4>${contentHTML(key)}`;
     ws4Preview.querySelector(".close").addEventListener("click", ()=>{ ws4Preview.hidden = true; });
   }
-  document.querySelectorAll(".ws4-item[data-key]").forEach(el=>{
-    el.addEventListener("click", ()=>showPreview(el.dataset.key));
+  document.querySelectorAll(".explorer-row[data-key]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      document.querySelectorAll(".explorer-row").forEach(r=>r.classList.remove("selected"));
+      el.classList.add("selected");
+      showPreview(el.dataset.key);
+    });
   });
   document.querySelectorAll(".ws4-place[data-key]").forEach(el=>{
     el.addEventListener("click", ()=>{
@@ -423,6 +428,10 @@
       el.classList.add("active");
       showPreview(el.dataset.key);
     });
+  });
+  document.querySelector(".ewc-red")?.addEventListener("click", ()=>{
+    try{ window.parent.postMessage("close-filemanager","*"); }catch(e){}
+    window.close();
   });
   const pendingPath = getHashParam("path");
   if(pendingPath){

@@ -238,24 +238,89 @@
   .ws3-side{width:220px;flex-shrink:0;}
   .ws3-side .window-body{font-size:11.5px;}
 
-  /* ================= WORKSPACE 4 — File manager ================= */
-  #ws-4.active{display:flex;flex-direction:column;height:100%;gap:10px;}
-  .ws4-toolbar{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-dim);background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:8px 12px;flex-shrink:0;}
-  .ws4-body{flex:1;display:flex;gap:14px;min-height:0;}
-  .ws4-sidebar{width:150px;flex-shrink:0;background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:10px;overflow:auto;}
-  .ws4-place{padding:7px 8px;border-radius:6px;font-size:12px;color:var(--text-dim);display:flex;gap:8px;align-items:center;width:100%;}
-  .ws4-place:hover,.ws4-place.active{background:#15291d;color:var(--green);}
-  .ws4-grid{flex:1;background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:16px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:14px;align-content:start;}
-  .ws4-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 4px;border-radius:6px;}
-  .ws4-item:hover{background:var(--bg-panel-alt);}
-  .folder-icon{width:42px;height:32px;background:var(--green);opacity:.85;border-radius:0 6px 6px 6px;position:relative;}
-  .folder-icon::before{content:'';position:absolute;top:-7px;left:0;width:18px;height:7px;background:inherit;border-radius:4px 4px 0 0;}
-  .file-icon{width:30px;height:36px;background:var(--bg-panel-alt);border:1px solid var(--text-dim);border-radius:2px 6px 2px 2px;position:relative;}
-  .ws4-item .flabel{font-size:10.5px;color:var(--text-dim);text-align:center;}
-  .ws4-statusbar{font-size:11px;color:var(--text-dim);display:flex;justify-content:space-between;flex-shrink:0;}
-  .ws4-preview{background:var(--bg-panel);border:1px solid var(--green-dim);border-radius:8px;padding:14px;font-size:12px;max-height:220px;overflow:auto;position:relative;flex-shrink:0;}
-  .ws4-preview .close{position:absolute;top:8px;right:12px;color:var(--text-dim);}
-  .ws4-preview h4{margin:0 0 8px;color:var(--green);font-size:13px;}
+  /* ================= WORKSPACE 4 — File Manager (Windows Explorer skin) ================= */
+  body.explorer-active .topbar{display:none;}
+  body.explorer-active .desktop{background:#fff;}
+  #ws-4{padding:0;}
+  #ws-4.active{display:flex;flex-direction:column;height:100%;}
+  .explorer{
+    --wexp-font:'Segoe UI',-apple-system,'Helvetica Neue',Arial,sans-serif;
+    font-family:var(--wexp-font);
+    background:#fff;color:#1a1a1a;flex:1;display:flex;flex-direction:column;min-height:0;
+  }
+  .explorer *{box-sizing:border-box;}
+
+  .explorer-titlebar{
+    display:flex;align-items:center;gap:10px;height:32px;flex-shrink:0;
+    background:#f0f0f0;border-bottom:1px solid #d9d9d9;padding:0 8px;color:#3a3a3a;
+  }
+  .explorer-qat{display:flex;align-items:center;gap:10px;color:#e8b339;flex-shrink:0;}
+  .explorer-qat svg:nth-child(2),.explorer-qat svg:nth-child(3){color:#5a5a5a;}
+  .explorer-title{flex:1;font-size:12px;color:#4a4a4a;text-align:left;}
+  .explorer-winctrls{display:flex;gap:8px;flex-shrink:0;align-items:center;padding-right:4px;}
+  .ewc-dot{width:13px;height:13px;border-radius:50%;display:inline-block;cursor:pointer;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.15);}
+  .ewc-red{background:#ff5f57;}
+  .ewc-yellow{background:#febc2e;}
+  .ewc-green{background:#28c840;}
+  .ewc-dot:hover{filter:brightness(1.1);}
+
+  .explorer-ribbon{background:#f6f6f6;border-bottom:1px solid #d9d9d9;flex-shrink:0;}
+  .ribbon-tabs{display:flex;gap:2px;padding:4px 10px 0;font-size:12px;}
+  .ribbon-tab{padding:5px 12px;color:#3a3a3a;border-radius:2px 2px 0 0;}
+  .ribbon-tab.active{background:#fff;border:1px solid #d9d9d9;border-bottom:2px solid #0067c0;color:#0067c0;font-weight:600;margin-bottom:-1px;}
+  .ribbon-tab-contextual{background:#dcedc8;color:#33691e;font-weight:600;}
+  .ribbon-body{display:flex;align-items:stretch;gap:0;padding:6px 8px;background:#fff;overflow-x:auto;}
+  .ribbon-group{display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:2px 10px;border-right:1px solid #e6e6e6;flex-shrink:0;}
+  .ribbon-group:last-child{border-right:none;}
+  .ribbon-group-main{display:flex;align-items:stretch;gap:4px;flex:1;}
+  .ribbon-group-label{font-size:10.5px;color:#5a5a5a;margin-top:4px;white-space:nowrap;}
+  .ribbon-btn{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;font-size:10.5px;color:#2a2a2a;border-radius:3px;padding:4px 8px;white-space:nowrap;}
+  .ribbon-btn:hover{background:#e5f1fb;}
+  .ribbon-btn-lg{width:64px;height:60px;justify-content:center;text-align:center;line-height:1.15;}
+  .ribbon-btn-sm{flex-direction:row;gap:6px;font-size:11.5px;height:24px;padding:2px 8px;}
+  .ribbon-btn-stack{display:flex;flex-direction:column;gap:1px;justify-content:center;}
+
+  .explorer-address{display:flex;align-items:center;gap:8px;height:34px;flex-shrink:0;padding:0 8px;background:#fff;border-bottom:1px solid #d9d9d9;}
+  .addr-nav{width:22px;height:22px;font-size:12px;color:#3a3a3a;border-radius:3px;flex-shrink:0;}
+  .addr-nav:hover{background:#e2e2e2;}
+  .addr-breadcrumb{flex:1;display:flex;align-items:center;gap:6px;font-size:12px;background:#fff;border:1px solid #d9d9d9;border-radius:2px;height:26px;padding:0 10px;color:#2a2a2a;min-width:0;}
+  .addr-breadcrumb .sep{color:#9a9a9a;font-size:10px;}
+  .addr-breadcrumb .current{color:#2a2a2a;font-weight:500;}
+  .addr-search{width:180px;flex-shrink:0;display:flex;align-items:center;gap:6px;border:1px solid #d9d9d9;border-radius:2px;height:26px;padding:0 8px;}
+  .addr-search input{border:none;outline:none;font-size:11.5px;width:100%;color:#5a5a5a;background:transparent;}
+
+  .explorer-body{flex:1;display:flex;min-height:0;}
+  .explorer-sidebar{width:190px;flex-shrink:0;background:#fbfbfb;border-right:1px solid #e2e2e2;overflow:auto;padding:4px 0;font-size:12px;}
+  .tree-item{display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;color:#2a2a2a;width:100%;text-align:left;white-space:nowrap;}
+  .tree-item.tree-child{padding-left:26px;}
+  .tree-item .chevron{width:10px;font-size:9px;color:#6e6e6e;flex-shrink:0;}
+  .tree-item:hover{background:#e5f1fb;}
+  .tree-item.active,.ws4-place.active{background:#cde8ff;}
+
+  .explorer-main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;}
+  .explorer-columns{display:grid;grid-template-columns:1fr 160px 130px;gap:8px;padding:6px 14px;font-size:11.5px;color:#5a5a5a;border-bottom:1px solid #e2e2e2;background:#f6f6f6;flex-shrink:0;}
+  .explorer-list{flex:1;overflow:auto;}
+  .explorer-row{display:grid;grid-template-columns:1fr 160px 130px;align-items:center;gap:8px;padding:5px 14px;font-size:12px;color:#1a1a1a;border-bottom:1px solid #f5f5f5;}
+  .explorer-row:hover{background:#e5f1fb;}
+  .explorer-row.selected{background:#cde8ff;}
+  .explorer-row .ex-date,.explorer-row .ex-type{color:#3a3a3a;font-size:11.5px;}
+  .ex-icon{width:20px;height:16px;flex-shrink:0;display:inline-block;position:relative;margin-right:2px;}
+  .ex-name{display:flex;align-items:center;gap:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ex-folder{background:linear-gradient(#ffd668,#f7b634);border-radius:0 3px 3px 3px;}
+  .ex-folder::before{content:'';position:absolute;top:-5px;left:0;width:9px;height:5px;background:#f7b634;border-radius:2px 2px 0 0;}
+  .ex-file{background:#fafafa;border:1px solid #c9c9c9;border-radius:1px 4px 1px 1px;}
+  .ex-file::before{content:'';position:absolute;top:0;right:0;width:5px;height:5px;background:#e0e0e0;border-bottom-left-radius:2px;}
+
+  .explorer-statusbar{display:flex;justify-content:space-between;align-items:center;height:24px;flex-shrink:0;background:#f0f0f0;border-top:1px solid #d9d9d9;padding:0 12px;font-size:11px;color:#3a3a3a;}
+  .statusbar-right{display:flex;gap:8px;color:#5a5a5a;}
+
+  .ws4-preview{position:absolute;right:16px;bottom:40px;width:280px;background:#fff;border:1px solid #d9d9d9;border-radius:4px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:14px;font-size:12px;max-height:260px;overflow:auto;color:#1a1a1a;font-family:'Segoe UI',Arial,sans-serif;z-index:5;}
+  .ws4-preview .close{position:absolute;top:8px;right:10px;color:#6e6e6e;cursor:pointer;}
+  .ws4-preview h4{margin:0 0 8px;color:#0067c0;font-size:13px;}
+  .ws4-preview a{color:#0067c0;}
+  .ws4-preview .tag{color:#5a5a5a;border-color:#d9d9d9;}
+  .ws4-preview span[style*="var(--green)"]{color:#0067c0 !important;}
+  .ws4-preview .nf-label{color:#0067c0;}
 
   /* ================= WORKSPACE 5 — split terminal + info ================= */
   #ws-5.active{display:grid;grid-template-columns:1.3fr 1fr;grid-template-rows:auto auto;gap:14px;height:100%;}
@@ -294,8 +359,10 @@
     .ws2-projects{width:100%;}
     #ws-3.active{flex-direction:column;}
     .ws3-side{width:100%;}
-    .ws4-body{flex-direction:column;}
-    .ws4-sidebar{width:100%;display:flex;flex-wrap:wrap;gap:4px;}
+    .explorer-sidebar{width:120px;}
+    .explorer-columns,.explorer-row{grid-template-columns:1fr 90px;}
+    .explorer-columns .col-type,.explorer-row .ex-type{display:none;}
+    .ribbon-group-label{display:none;}
     #ws-5.active{grid-template-columns:1fr;grid-template-rows:auto;}
     .ws5-terminal{grid-row:auto;}
     .topbar-path{display:none;}

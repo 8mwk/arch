@@ -212,43 +212,144 @@
       </div>
     </section>
 
-    <!-- ================= WORKSPACE 4 ================= -->
+    <!-- ================= WORKSPACE 4 — File Manager (Windows Explorer skin) ================= -->
     <section class="workspace" id="ws-4">
-      <div class="ws4-toolbar">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-        <span>/home/dazai/portfolio</span>
-      </div>
-      <div class="ws4-body">
-        <div class="ws4-sidebar" id="ws4-places">
-          <button class="ws4-place active" data-key="about">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
-            Home
-          </button>
-          <button class="ws4-place" data-key="about">About</button>
-          <button class="ws4-place" data-key="projects">Projects</button>
-          <button class="ws4-place" data-key="skills">Skills</button>
-          <button class="ws4-place" data-key="experience">Experience</button>
-          <button class="ws4-place" data-key="contact">Contact</button>
-          <button class="ws4-place" data-key="certificates">Certificates</button>
-          <button class="ws4-place" data-key="assets">Assets</button>
+      <div class="explorer">
+
+        <div class="explorer-titlebar">
+          <span class="explorer-qat">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h11"/><path d="M3 6h11"/><path d="M3 14h7"/><path d="M3 18h7"/><path d="M14 21v-8l7 4-7 4z"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </span>
+          <span class="explorer-title">Primary Drive (C:)</span>
+          <span class="explorer-winctrls">
+            <span class="ewc-dot ewc-red" data-target="ws1-floatwin-filemanager" role="button" aria-label="Close"></span>
+            <span class="ewc-dot ewc-yellow" aria-label="Minimize"></span>
+            <span class="ewc-dot ewc-green" aria-label="Maximize"></span>
+          </span>
         </div>
-        <div class="ws4-grid" id="ws4-grid">
-          <div class="ws4-item" data-key="about"><div class="folder-icon"></div><span class="flabel">About</span></div>
-          <div class="ws4-item" data-key="projects"><div class="folder-icon"></div><span class="flabel">Projects</span></div>
-          <div class="ws4-item" data-key="skills"><div class="folder-icon"></div><span class="flabel">Skills</span></div>
-          <div class="ws4-item" data-key="experience"><div class="folder-icon"></div><span class="flabel">Experience</span></div>
-          <div class="ws4-item" data-key="contact"><div class="folder-icon"></div><span class="flabel">Contact</span></div>
-          <div class="ws4-item" data-key="certificates"><div class="folder-icon"></div><span class="flabel">Certificates</span></div>
-          <div class="ws4-item" data-key="assets"><div class="folder-icon"></div><span class="flabel">Assets</span></div>
-          <div class="ws4-item" data-key="readme"><div class="file-icon"></div><span class="flabel">README.md</span></div>
+
+        <div class="explorer-ribbon">
+          <div class="ribbon-tabs">
+            <span class="ribbon-tab">File</span>
+            <span class="ribbon-tab active">Home</span>
+            <span class="ribbon-tab">Share</span>
+            <span class="ribbon-tab">View</span>
+            <span class="ribbon-tab ribbon-tab-contextual">Drive Tools</span>
+            <span class="ribbon-tab">Manage</span>
+          </div>
+          <div class="ribbon-body">
+            <div class="ribbon-group">
+              <div class="ribbon-group-main">
+                <button class="ribbon-btn ribbon-btn-lg">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5a5a5a" stroke-width="1.6"><path d="M12 17v-6"/><path d="M9.5 13.5 12 11l2.5 2.5"/><rect x="6" y="3" width="12" height="14" rx="1"/><path d="M9 21h6"/></svg>
+                  <span>Pin to Quick<br>access</span>
+                </button>
+                <div class="ribbon-btn-stack">
+                  <button class="ribbon-btn ribbon-btn-sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5a5a5a" stroke-width="1.8"><path d="M9 9h10v10H9z"/><path d="M5 15V5h10"/></svg>Copy</button>
+                  <button class="ribbon-btn ribbon-btn-sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5a5a5a" stroke-width="1.8"><path d="M9 9h10v10H9z"/><path d="M5 15V5h10"/></svg>Paste</button>
+                </div>
+              </div>
+              <span class="ribbon-group-label">Clipboard</span>
+            </div>
+            <div class="ribbon-group">
+              <div class="ribbon-group-main">
+                <button class="ribbon-btn ribbon-btn-sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5a5a5a" stroke-width="1.8"><path d="M14 3v5h5"/><rect x="4" y="3" width="12" height="18" rx="1"/><path d="M20 13v6a2 2 0 0 1-2 2h-4"/></svg>Move to</button>
+                <button class="ribbon-btn ribbon-btn-sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5a5a5a" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="1"/><path d="M4 16V4h12"/></svg>Copy to</button>
+                <button class="ribbon-btn ribbon-btn-sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>Delete</button>
+                <button class="ribbon-btn ribbon-btn-sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5a5a5a" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Rename</button>
+              </div>
+              <span class="ribbon-group-label">Organize</span>
+            </div>
+            <div class="ribbon-group">
+              <div class="ribbon-group-main">
+                <button class="ribbon-btn ribbon-btn-lg" id="explorer-newfolder">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5a5a5a" stroke-width="1.6"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M12 11v5"/><path d="M9.5 13.5h5"/></svg>
+                  <span>New<br>folder</span>
+                </button>
+                <button class="ribbon-btn ribbon-btn-sm">New item</button>
+              </div>
+              <span class="ribbon-group-label">New</span>
+            </div>
+            <div class="ribbon-group">
+              <div class="ribbon-group-main">
+                <button class="ribbon-btn ribbon-btn-lg" id="explorer-properties">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5a5a5a" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r=".5" fill="#5a5a5a"/></svg>
+                  <span>Properties</span>
+                </button>
+              </div>
+              <span class="ribbon-group-label">Open</span>
+            </div>
+            <div class="ribbon-group">
+              <div class="ribbon-group-main">
+                <button class="ribbon-btn ribbon-btn-lg" id="explorer-select">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5a5a5a" stroke-width="1.6"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="m8 12 3 3 6-6"/></svg>
+                  <span>Select</span>
+                </button>
+              </div>
+              <span class="ribbon-group-label">Select</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="explorer-address">
+          <button class="addr-nav" aria-label="Back">&#8592;</button>
+          <button class="addr-nav" aria-label="Forward">&#8594;</button>
+          <button class="addr-nav addr-up" aria-label="Up">&#8593;</button>
+          <div class="addr-breadcrumb">
+            <span>This PC</span><span class="sep">&#8250;</span><span class="current">Primary Drive (C:)</span>
+          </div>
+          <div class="addr-search">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6e6e6e" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" placeholder="Search Primary Dri..." readonly>
+          </div>
+        </div>
+
+        <div class="explorer-body">
+          <div class="explorer-sidebar" id="ws4-places">
+            <div class="tree-item"><span class="chevron">&#8250;</span>Quick access</div>
+            <div class="tree-item tree-root expanded"><span class="chevron">&#8964;</span>This PC</div>
+            <div class="tree-item tree-child">3D Objects</div>
+            <div class="tree-item tree-child">Desktop</div>
+            <div class="tree-item tree-child">Documents</div>
+            <div class="tree-item tree-child">Downloads</div>
+            <div class="tree-item tree-child">Music</div>
+            <div class="tree-item tree-child">Pictures</div>
+            <div class="tree-item tree-child">Videos</div>
+            <button class="tree-item tree-child ws4-place active" data-key="about">Primary Drive (C:)</button>
+            <div class="tree-item tree-child">DVD RW Drive (E:)</div>
+            <div class="tree-item tree-child">Extra Space (F:)</div>
+          </div>
+
+          <div class="explorer-main">
+            <div class="explorer-columns">
+              <span class="col-name">Name</span>
+              <span class="col-date">Date modified</span>
+              <span class="col-type">Type</span>
+            </div>
+            <div class="explorer-list" id="ws4-grid">
+              <div class="explorer-row" data-key="about" tabindex="0"><span class="ex-name"><span class="ex-icon ex-folder"></span>About</span><span class="ex-date">7/23/2017 4:00 PM</span><span class="ex-type">File folder</span></div>
+              <div class="explorer-row" data-key="projects" tabindex="0"><span class="ex-name"><span class="ex-icon ex-folder"></span>Projects</span><span class="ex-date">5/1/2018 8:58 AM</span><span class="ex-type">File folder</span></div>
+              <div class="explorer-row" data-key="skills" tabindex="0"><span class="ex-name"><span class="ex-icon ex-folder"></span>Skills</span><span class="ex-date">4/11/2018 5:38 PM</span><span class="ex-type">File folder</span></div>
+              <div class="explorer-row" data-key="experience" tabindex="0"><span class="ex-name"><span class="ex-icon ex-folder"></span>Experience</span><span class="ex-date">11/16/2018 9:45 AM</span><span class="ex-type">File folder</span></div>
+              <div class="explorer-row" data-key="contact" tabindex="0"><span class="ex-name"><span class="ex-icon ex-folder"></span>Contact</span><span class="ex-date">11/21/2018 10:13 AM</span><span class="ex-type">File folder</span></div>
+              <div class="explorer-row" data-key="certificates" tabindex="0"><span class="ex-name"><span class="ex-icon ex-folder"></span>Certificates</span><span class="ex-date">5/30/2017 4:11 PM</span><span class="ex-type">File folder</span></div>
+              <div class="explorer-row" data-key="assets" tabindex="0"><span class="ex-name"><span class="ex-icon ex-folder"></span>Assets</span><span class="ex-date">5/9/2018 8:37 AM</span><span class="ex-type">File folder</span></div>
+              <div class="explorer-row" data-key="readme" tabindex="0"><span class="ex-name"><span class="ex-icon ex-file"></span>README.md</span><span class="ex-date">11/9/2018 6:49 AM</span><span class="ex-type">MD File</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="explorer-statusbar">
+          <span id="ws4-count">8 items</span>
+          <span class="statusbar-right">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="7" height="7"/><rect x="14" y="4" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="5" width="18" height="3"/><rect x="3" y="11" width="18" height="3"/><rect x="3" y="17" width="18" height="3"/></svg>
+          </span>
         </div>
       </div>
       <div class="ws4-preview" id="ws4-preview" hidden></div>
-      <div class="ws4-statusbar">
-        <span>7 folders, 1 file</span>
-        <span>12.4 GB free</span>
-      </div>
     </section>
 
     <!-- ================= WORKSPACE 5 ================= -->
