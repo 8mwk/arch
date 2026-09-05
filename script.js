@@ -253,41 +253,6 @@
   document.getElementById("ws1-dock-github").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
   document.getElementById("ws1-dock-discord")?.addEventListener("click", ()=>window.open("https://discord.com","_blank"));
 
-  /* start menu (Applications launcher) */
-  const menuBtn = document.getElementById("ws1-menu-btn");
-  const startMenu = document.getElementById("ws1-startmenu");
-  menuBtn.addEventListener("click", (e)=>{
-    e.stopPropagation();
-    const willShow = startMenu.hidden;
-    startMenu.hidden = !willShow;
-    menuBtn.classList.toggle("active", willShow);
-  });
-  document.addEventListener("click", (e)=>{
-    if(!startMenu.hidden && !startMenu.contains(e.target) && e.target !== menuBtn){
-      startMenu.hidden = true;
-      menuBtn.classList.remove("active");
-    }
-  });
-  startMenu.querySelectorAll(".startmenu-item[data-key]").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      openWs1Preview(el.dataset.key);
-      startMenu.hidden = true;
-      menuBtn.classList.remove("active");
-    });
-  });
-  startMenu.querySelectorAll(".startmenu-item[data-ws]").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      document.querySelector(`.ws-pill[data-ws="${el.dataset.ws}"]`)?.click();
-      startMenu.hidden = true;
-      menuBtn.classList.remove("active");
-    });
-  });
-  document.getElementById("ws1-menu-github")?.addEventListener("click", ()=>{
-    window.open("https://github.com/8mwk","_blank");
-    startMenu.hidden = true;
-    menuBtn.classList.remove("active");
-  });
-
   document.getElementById("ws1-skillbars").innerHTML = Object.entries(CONTENT.skills).map(([cat,items])=>{
     const max = Math.max(...Object.values(CONTENT.skills).map(v=>v.length));
     const pct = Math.round(items.length / max * 100);
