@@ -180,7 +180,14 @@
   loginBtn.addEventListener("click", completeLogin);
   loginPass.addEventListener("keydown", (e)=>{ if(e.key === "Enter") completeLogin(); });
 
-  setTimeout(printNextKernelLine, 300);
+  if(/boot=skip/.test(location.hash)){
+    kernelOverlay.style.display = "none";
+    loginOverlay.style.display = "none";
+    state.booted = true;
+    applyHashWorkspace();
+  } else {
+    setTimeout(printNextKernelLine, 300);
+  }
 
   /* ---------------- workspace switching ---------------- */
   function setWorkspace(n){
@@ -192,10 +199,27 @@
   document.querySelectorAll(".ws-pill").forEach(p=>p.addEventListener("click", ()=>setWorkspace(p.dataset.ws)));
   document.querySelectorAll(".dock-btn[data-ws]").forEach(b=>b.addEventListener("click", ()=>setWorkspace(b.dataset.ws)));
   document.getElementById("ws1-dock-terminal")?.addEventListener("click", ()=>{
-    window.open(window.location.pathname + "#ws=3", "_blank", "width=900,height=650");
+    toggleFloatWin("ws1-floatwin-terminal", 3);
   });
   document.getElementById("ws1-dock-filemanager")?.addEventListener("click", ()=>{
-    window.open(window.location.pathname + "#ws=4", "_blank", "width=1000,height=650");
+    toggleFloatWin("ws1-floatwin-filemanager", 4);
+  });
+  function toggleFloatWin(id, wsNum){
+    const win = document.getElementById(id);
+    if(!win) return;
+    if(!win.hidden){ win.hidden = true; return; }
+    const frame = win.querySelector(".ws1-floatwin-frame");
+    if(frame && !frame.dataset.loaded){
+      frame.src = window.location.pathname + `#ws=${wsNum}&boot=skip`;
+      frame.dataset.loaded = "1";
+    }
+    win.hidden = false;
+  }
+  document.querySelectorAll(".ws1-floatwin-close").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const target = document.getElementById(btn.dataset.target);
+      if(target) target.hidden = true;
+    });
   });
   document.getElementById("ws2-code").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
   document.getElementById("ws2-contact").addEventListener("click", ()=>setWorkspace(1));

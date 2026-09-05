@@ -116,6 +116,28 @@
           <div class="window-body" id="ws1-preview-body"><!-- injected --></div>
         </div>
 
+        <div class="window ws1-floatwin ws1-floatwin-terminal" id="ws1-floatwin-terminal" hidden>
+          <div class="window-titlebar">
+            <span class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
+            <span>Terminal</span>
+            <button class="ws1-floatwin-close" data-target="ws1-floatwin-terminal" aria-label="Close">✕</button>
+          </div>
+          <div class="window-body ws1-floatwin-body">
+            <iframe class="ws1-floatwin-frame" id="ws1-floatwin-terminal-frame" title="Terminal" loading="lazy"></iframe>
+          </div>
+        </div>
+
+        <div class="window ws1-floatwin ws1-floatwin-filemanager" id="ws1-floatwin-filemanager" hidden>
+          <div class="window-titlebar">
+            <span class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
+            <span>File Manager</span>
+            <button class="ws1-floatwin-close" data-target="ws1-floatwin-filemanager" aria-label="Close">✕</button>
+          </div>
+          <div class="window-body ws1-floatwin-body">
+            <iframe class="ws1-floatwin-frame" id="ws1-floatwin-filemanager-frame" title="File Manager" loading="lazy"></iframe>
+          </div>
+        </div>
+
         <div class="ws1-dock">
           <button class="dock-btn ico-square" id="ws1-dock-terminal" title="Terminal">
             <img src="assets/terminal.png" alt="Terminal" class="dock-icon-img">
