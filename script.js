@@ -68,6 +68,8 @@
         return CONTENT.contact.map(c=>`<div><span class="nf-label">${c.label}:</span> <a href="${c.href}" target="_blank" rel="noopener">${c.value}</a></div>`).join("");
       case "certificates":
         return `<p style="color:var(--text-dim)">Empty for now — check back later.</p>`;
+      case "assets":
+        return `<p style="color:var(--text-dim)">Empty for now — this folder is where project screenshots, banners, and icons will live.</p>`;
       case "readme":
         return `<p># BAD APPLE<br><br>Portfolio OS for Dazai. Built with HTML, CSS and JS.<br>Press 1–5 to switch workspaces.</p>`;
       default: return "";
@@ -237,13 +239,7 @@
   document.querySelector(".ws1-preview-close").addEventListener("click", ()=>{ ws1Preview.hidden = true; });
   document.getElementById("ws1-icon-github").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
   document.getElementById("ws1-dock-github").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
-  document.querySelectorAll(".ws1-dock .dock-btn[data-key]").forEach(el=>{
-    el.addEventListener("click", ()=>openWs1Preview(el.dataset.key));
-  });
-  document.getElementById("ws1-dock-reset-wallpaper").addEventListener("click", ()=>{
-    resetWallpaper();
-    try{ localStorage.removeItem(WALLPAPER_KEY); }catch(e){}
-  });
+  document.getElementById("ws1-dock-discord")?.addEventListener("click", ()=>window.open("https://discord.com","_blank"));
 
   /* start menu (Applications launcher) */
   const menuBtn = document.getElementById("ws1-menu-btn");
