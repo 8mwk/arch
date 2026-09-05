@@ -237,6 +237,13 @@
   document.querySelector(".ws1-preview-close").addEventListener("click", ()=>{ ws1Preview.hidden = true; });
   document.getElementById("ws1-icon-github").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
   document.getElementById("ws1-dock-github").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
+  document.querySelectorAll(".ws1-dock .dock-btn[data-key]").forEach(el=>{
+    el.addEventListener("click", ()=>openWs1Preview(el.dataset.key));
+  });
+  document.getElementById("ws1-dock-reset-wallpaper").addEventListener("click", ()=>{
+    resetWallpaper();
+    try{ localStorage.removeItem(WALLPAPER_KEY); }catch(e){}
+  });
 
   /* start menu (Applications launcher) */
   const menuBtn = document.getElementById("ws1-menu-btn");

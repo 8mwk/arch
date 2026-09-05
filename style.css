@@ -175,10 +175,23 @@
   .ws1-preview-close:hover{color:var(--text);}
 
   /* bottom dock */
-  .ws1-dock{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:2;display:flex;align-items:center;gap:8px;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:8px 10px;box-shadow:0 14px 34px rgba(0,0,0,.45);}
-  .dock-sep{width:1px;height:20px;background:var(--border);flex-shrink:0;}
-  .ws1-menu-btn{color:var(--green);}
-  .ws1-menu-btn.active, .ws1-menu-btn:hover{background:#15291d;}
+  .ws1-dock{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:2;display:flex;align-items:center;gap:7px;background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;padding:7px 9px;box-shadow:0 14px 34px rgba(0,0,0,.45);}
+  .dock-sep{width:1px;height:22px;background:var(--border);flex-shrink:0;}
+  .ws1-dock .dock-btn.ico-square{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .12s ease;}
+  .ws1-dock .dock-btn.ico-round{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#1c2128;color:var(--text-dim);font-size:9.5px;font-weight:600;}
+  .ws1-dock .dock-btn.ico-square:hover, .ws1-dock .dock-btn.ico-round:hover{transform:translateY(-3px);}
+  .ico-menu{background:var(--green);}
+  .ico-menu.active{filter:brightness(1.25);transform:translateY(-3px);}
+  .ico-orange{background:#e8952e;}
+  .ico-pink{background:#e0518f;}
+  .ico-yellow{background:#e6c229;}
+  .ico-blue{background:#2e8fe8;}
+  .ico-cyan{background:#3fd7c4;}
+  .ico-indigo{background:#5865f2;}
+  .ico-purple{background:#8a5cf0;}
+  .ico-magenta{background:#d63bb0;}
+  .ico-dark{background:#1c2128;border:1px solid var(--border);}
+  .ico-green{background:#3ec972;}
 
   /* start / application menu */
   .ws1-startmenu{position:absolute;bottom:64px;left:50%;transform:translateX(-50%);z-index:4;min-width:190px;background:var(--bg-panel);border:1px solid var(--border);border-radius:9px;padding:6px;display:flex;flex-direction:column;gap:1px;box-shadow:0 14px 34px rgba(0,0,0,.5);}
@@ -269,6 +282,8 @@
     .greeting-icon{font-size:28px;}
     .greeting-big{font-size:13.5px;}
     .ws1-preview{bottom:64px;max-height:min(280px,50%);}
+    .ws1-dock{max-width:calc(100% - 16px);overflow-x:auto;gap:5px;padding:6px 7px;}
+    .ws1-dock .dock-btn.ico-square, .ws1-dock .dock-btn.ico-round{width:28px;height:28px;}
     #ws-2.active .ws2-main{flex-direction:column;}
     .ws2-projects{width:100%;}
     #ws-3.active{flex-direction:column;}
