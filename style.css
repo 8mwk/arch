@@ -168,12 +168,6 @@
   .greeting-sub{font-size:11px;color:var(--text-dim);margin-top:3px;text-shadow:0 1px 4px rgba(0,0,0,.8);}
 
   /* preview window (opens from a desktop icon) */
-  .ws1-preview{position:absolute;bottom:74px;left:50%;transform:translateX(-50%);width:min(480px,calc(100% - 40px));max-height:min(340px,55%);z-index:3;display:flex;flex-direction:column;}
-  .ws1-preview .window-titlebar{gap:8px;}
-  .ws1-preview .window-body{flex:1;overflow:auto;}
-  .ws1-preview-close{margin-left:auto;color:var(--text-dim);font-size:12px;}
-  .ws1-preview-close:hover{color:var(--text);}
-
   .ws1-floatwin{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(620px,calc(100% - 32px));height:min(440px,calc(100% - 96px));z-index:4;display:flex;flex-direction:column;}
   .ws1-floatwin .window-titlebar{gap:8px;}
   .ws1-floatwin .window-titlebar span:not(.dots){margin-right:auto;}
@@ -294,7 +288,6 @@
     .ws1-greeting{left:12px;bottom:70px;}
     .greeting-icon{font-size:28px;}
     .greeting-big{font-size:13.5px;}
-    .ws1-preview{bottom:64px;max-height:min(280px,50%);}
     .ws1-dock{max-width:calc(100% - 16px);overflow-x:auto;gap:5px;padding:6px 7px;}
     .ws1-dock .dock-btn.ico-square, .ws1-dock .dock-btn.ico-round{width:28px;height:28px;}
     #ws-2.active .ws2-main{flex-direction:column;}

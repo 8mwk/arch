@@ -175,6 +175,10 @@
     const m = location.hash.match(/ws=(\d)/);
     if(m) setWorkspace(m[1]);
   }
+  function getHashParam(name){
+    const m = location.hash.match(new RegExp(name+"=([\\w.-]+)"));
+    return m ? decodeURIComponent(m[1]) : null;
+  }
 
   kernelOverlay.addEventListener("click", ()=>{ kIdx = KERNEL_LINES.length; showLogin(); });
   loginBtn.addEventListener("click", completeLogin);
@@ -201,9 +205,7 @@
   document.getElementById("ws1-dock-terminal")?.addEventListener("click", ()=>{
     toggleFloatWin("ws1-floatwin-terminal", 3);
   });
-  document.getElementById("ws1-dock-filemanager")?.addEventListener("click", ()=>{
-    toggleFloatWin("ws1-floatwin-filemanager", 4);
-  });
+  document.getElementById("ws1-dock-filemanager")?.addEventListener("click", toggleFileManager);
   function toggleFloatWin(id, wsNum){
     const win = document.getElementById(id);
     if(!win) return;
@@ -213,6 +215,22 @@
       frame.src = window.location.pathname + `#ws=${wsNum}&boot=skip`;
       frame.dataset.loaded = "1";
     }
+    win.hidden = false;
+  }
+  function toggleFileManager(){
+    const win = document.getElementById("ws1-floatwin-filemanager");
+    if(!win) return;
+    if(!win.hidden){ win.hidden = true; return; }
+    openFileManagerPath(null);
+  }
+  function openFileManagerPath(key){
+    const win = document.getElementById("ws1-floatwin-filemanager");
+    if(!win) return;
+    const frame = win.querySelector(".ws1-floatwin-frame");
+    let src = window.location.pathname + "#ws=4&boot=skip";
+    if(key) src += "&path=" + encodeURIComponent(key);
+    frame.src = src;
+    frame.dataset.loaded = "1";
     win.hidden = false;
   }
   document.querySelectorAll(".ws1-floatwin-close").forEach(btn=>{
@@ -261,18 +279,9 @@
   setInterval(randomStats, 3500);
 
   /* ---------------- workspace 1: desktop icons + widgets ---------------- */
-  const ws1Preview = document.getElementById("ws1-preview");
-  const ws1PreviewTitle = document.getElementById("ws1-preview-title");
-  const ws1PreviewBody = document.getElementById("ws1-preview-body");
-  function openWs1Preview(key){
-    ws1PreviewTitle.textContent = key === "readme" ? "README.md" : `~/${key}`;
-    ws1PreviewBody.innerHTML = contentHTML(key);
-    ws1Preview.hidden = false;
-  }
   document.querySelectorAll(".ws1-icon[data-key]").forEach(el=>{
-    el.addEventListener("click", ()=>openWs1Preview(el.dataset.key));
+    el.addEventListener("click", ()=>openFileManagerPath(el.dataset.key));
   });
-  document.querySelector(".ws1-preview-close").addEventListener("click", ()=>{ ws1Preview.hidden = true; });
   document.getElementById("ws1-icon-github").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
   document.getElementById("ws1-dock-github").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
   document.getElementById("ws1-dock-discord")?.addEventListener("click", ()=>window.open("https://discord.com","_blank"));
@@ -401,7 +410,7 @@
   const ws4Preview = document.getElementById("ws4-preview");
   function showPreview(key){
     ws4Preview.hidden = false;
-    const title = key.charAt(0).toUpperCase() + key.slice(1);
+    const title = key === "readme" ? "README.md" : key.charAt(0).toUpperCase() + key.slice(1);
     ws4Preview.innerHTML = `<span class="close" role="button" tabindex="0">✕</span><h4>${title}</h4>${contentHTML(key)}`;
     ws4Preview.querySelector(".close").addEventListener("click", ()=>{ ws4Preview.hidden = true; });
   }
@@ -415,6 +424,11 @@
       showPreview(el.dataset.key);
     });
   });
+  const pendingPath = getHashParam("path");
+  if(pendingPath){
+    document.querySelectorAll(".ws4-place").forEach(p=>p.classList.toggle("active", p.dataset.key === pendingPath));
+    showPreview(pendingPath);
+  }
 
   /* ---------------- workspace 5: recent projects ---------------- */
   document.getElementById("ws5-projlist").innerHTML = CONTENT.projects.slice(0,5).map(p=>`<li>${p.name}</li>`).join("");
