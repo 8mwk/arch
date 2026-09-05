@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dazai@archlinux — BAD APPLE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="boot-kernel" id="boot-kernel">
+  <div id="kernel-log"></div>
+  <div class="boot-skip">click to skip</div>
+</div>
+
+<div class="boot-login" id="boot-login" hidden>
+  <div class="login-clock">
+    <div class="login-time" id="login-time">22:42</div>
+    <div class="login-date" id="login-date">Sat, Sep 5</div>
+  </div>
+  <div class="login-card">
+    <div class="login-avatar">△</div>
+    <div class="login-user">dazai</div>
+    <input type="password" id="login-pass" class="login-pass" placeholder="Password" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Password (any value works)">
+    <button class="login-btn" id="login-btn">Log In</button>
+    <div class="login-hint">any password works — press Enter</div>
+  </div>
+  <div class="login-bottom">
+    <span class="login-session">⬡ Hyprland</span>
+    <span class="login-power" title="This button is decorative">⏻</span>
+  </div>
+</div>
+
+<div class="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="brand">BAD APPLE</span>
+      <div class="workspaces" id="ws-switcher">
+        <button class="ws-pill active" data-ws="1">1</button>
+        <button class="ws-pill" data-ws="2">2</button>
+        <button class="ws-pill" data-ws="3">3</button>
+        <button class="ws-pill" data-ws="4">4</button>
+        <button class="ws-pill" data-ws="5">5</button>
+      </div>
+      <span class="topbar-path">~/portfolio</span>
+    </div>
+    <div class="topbar-right">
+      <span class="stat" id="stat-cpu">Cpu 8%</span>
+      <span class="stat" id="stat-mem">Mem 2.4G</span>
+      <span class="stat">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8.5a16 16 0 0 1 20 0"/><path d="M5 12a11 11 0 0 1 14 0"/><path d="M8.5 15.5a6 6 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/></svg>
+      </span>
+      <span class="stat">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M17 9a4 4 0 0 1 0 6"/></svg>
+      </span>
+      <span class="stat">
+        <svg width="18" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><rect x="20" y="10" width="2" height="4"/><rect x="3" y="8" width="12" height="8" fill="currentColor" stroke="none"/></svg>
+        61%
+      </span>
+      <span class="clock">22:42</span>
+    </div>
+  </div>
+
+  <div class="desktop">
+
+    <!-- ================= WORKSPACE 1 — Desktop ================= -->
+    <section class="workspace active" id="ws-1">
+      <div class="ws1-desktop">
+        <div class="ws1-wallpaper" aria-hidden="true">
+          <svg viewBox="0 0 800 300" preserveAspectRatio="none">
+            <polygon points="0,300 0,190 110,100 240,205 370,70 510,195 640,115 800,215 800,300" fill="#0f2018"></polygon>
+            <polygon points="0,300 0,240 160,165 310,235 460,150 610,235 800,180 800,300" fill="#0a1810" opacity=".85"></polygon>
+          </svg>
+        </div>
+
+        <div class="ws1-icons-wrap">
+          <div class="ws1-icons-label">Home</div>
+          <div class="ws1-icongrid" id="ws1-icongrid">
+            <button class="ws1-icon" data-key="about"><span class="di-folder"></span><span class="di-label">About</span></button>
+            <button class="ws1-icon" data-key="projects"><span class="di-folder"></span><span class="di-label">Projects</span></button>
+            <button class="ws1-icon" data-key="skills"><span class="di-folder"></span><span class="di-label">Skills</span></button>
+            <button class="ws1-icon" data-key="experience"><span class="di-folder"></span><span class="di-label">Experience</span></button>
+            <button class="ws1-icon" data-key="contact"><span class="di-folder"></span><span class="di-label">Contact</span></button>
+            <button class="ws1-icon" data-key="certificates"><span class="di-folder"></span><span class="di-label">Certificates</span></button>
+            <button class="ws1-icon" data-key="readme"><span class="di-file"></span><span class="di-label">README.md</span></button>
+            <button class="ws1-icon" id="ws1-icon-github"><span class="di-file di-link"></span><span class="di-label">GitHub</span></button>
+          </div>
+        </div>
+
+        <div class="ws1-widgets" aria-hidden="false">
+          <div class="conky">
+            <h5>System Monitor</h5>
+            <div class="bar-row"><span class="bar-label">CPU</span><span class="bar-track"><span class="bar-fill" id="ws1-bar-cpu"></span></span><span class="bar-val" id="ws1-val-cpu">8%</span></div>
+            <div class="bar-row"><span class="bar-label">RAM</span><span class="bar-track"><span class="bar-fill" style="width:31%"></span></span><span class="bar-val">2.4G/7.8G</span></div>
+          </div>
+          <div class="conky">
+            <h5>Status</h5>
+            <div class="presence-row"><span class="presence-dot online"></span>dazai — <span class="text-dim">Available</span></div>
+            <div class="presence-activity">Building Discord bots</div>
+          </div>
+          <div class="conky">
+            <h5>Skill Areas</h5>
+            <div id="ws1-skillbars"><!-- injected --></div>
+          </div>
+        </div>
+
+        <div class="ws1-greeting" id="ws1-greeting">
+          <span class="greeting-icon" id="greeting-icon">☀</span>
+          <div class="greeting-text">
+            <div class="greeting-big" id="greeting-big">Good afternoon</div>
+            <div class="greeting-sub">Open to freelance &amp; collab work</div>
+          </div>
+        </div>
+
+        <div class="window ws1-preview" id="ws1-preview" hidden>
+          <div class="window-titlebar">
+            <span class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
+            <span id="ws1-preview-title">about</span>
+            <button class="ws1-preview-close" aria-label="Close">✕</button>
+          </div>
+          <div class="window-body" id="ws1-preview-body"><!-- injected --></div>
+        </div>
+
+        <div class="ws1-dock">
+          <button class="dock-btn" data-ws="3" title="Terminal">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3"/><path d="M13 15h4"/></svg>
+          </button>
+          <button class="dock-btn" data-ws="4" title="Files">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>
+          </button>
+          <button class="dock-btn" data-ws="5" title="Dashboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          </button>
+          <button class="dock-btn" id="ws1-dock-github" title="GitHub">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.36 1.09 2.93.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .26.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= WORKSPACE 2 ================= -->
+    <section class="workspace" id="ws-2">
+      <div class="ws2-main">
+        <div class="window ws2-window">
+          <div class="window-titlebar">
+            <span class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
+            <span>~/portfolio</span>
+          </div>
+          <div class="window-body" id="ws2-body"><!-- injected --></div>
+        </div>
+        <div class="ws2-projects">
+          <h4>Projects</h4>
+          <div id="ws2-projlist"><!-- injected --></div>
+        </div>
+      </div>
+      <div class="ws2-dock">
+        <button class="dock-btn" data-ws="3" title="Terminal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3"/><path d="M13 15h4"/></svg>
+        </button>
+        <button class="dock-btn" data-ws="4" title="Files">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>
+        </button>
+        <button class="dock-btn" id="ws2-code" title="GitHub">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </button>
+        <button class="dock-btn" data-ws="5" title="Dashboard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        </button>
+        <button class="dock-btn" id="ws2-contact" title="Contact">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- ================= WORKSPACE 3 ================= -->
+    <section class="workspace" id="ws-3">
+      <div class="ws3-main">
+        <div class="window ws3-window">
+          <div class="window-titlebar">
+            <span class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
+            <span>dazai@portfolio:~</span>
+          </div>
+          <div class="window-body">
+            <div id="ws3-log"></div>
+            <div class="ws3-inputline">
+              <span class="ws3-prompt">dazai@portfolio:~$</span>
+              <input id="ws3-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Terminal input">
+            </div>
+          </div>
+        </div>
+        <div class="ws3-status">
+          <span>0:zsh*</span>
+          <span>"portfolio"</span>
+          <span class="clock">22:42</span>
+        </div>
+      </div>
+      <div class="ws3-side window">
+        <div class="window-titlebar">
+          <span class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
+          <span>system</span>
+        </div>
+        <div class="window-body" id="ws3-side-body"><!-- injected --></div>
+      </div>
+    </section>
+
+    <!-- ================= WORKSPACE 4 ================= -->
+    <section class="workspace" id="ws-4">
+      <div class="ws4-toolbar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        <span>/home/dazai/portfolio</span>
+      </div>
+      <div class="ws4-body">
+        <div class="ws4-sidebar" id="ws4-places">
+          <button class="ws4-place active" data-key="about">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+            Home
+          </button>
+          <button class="ws4-place" data-key="about">About</button>
+          <button class="ws4-place" data-key="projects">Projects</button>
+          <button class="ws4-place" data-key="skills">Skills</button>
+          <button class="ws4-place" data-key="experience">Experience</button>
+          <button class="ws4-place" data-key="contact">Contact</button>
+          <button class="ws4-place" data-key="certificates">Certificates</button>
+        </div>
+        <div class="ws4-grid" id="ws4-grid">
+          <div class="ws4-item" data-key="about"><div class="folder-icon"></div><span class="flabel">About</span></div>
+          <div class="ws4-item" data-key="projects"><div class="folder-icon"></div><span class="flabel">Projects</span></div>
+          <div class="ws4-item" data-key="skills"><div class="folder-icon"></div><span class="flabel">Skills</span></div>
+          <div class="ws4-item" data-key="experience"><div class="folder-icon"></div><span class="flabel">Experience</span></div>
+          <div class="ws4-item" data-key="contact"><div class="folder-icon"></div><span class="flabel">Contact</span></div>
+          <div class="ws4-item" data-key="certificates"><div class="folder-icon"></div><span class="flabel">Certificates</span></div>
+          <div class="ws4-item" data-key="readme"><div class="file-icon"></div><span class="flabel">README.md</span></div>
+        </div>
+      </div>
+      <div class="ws4-preview" id="ws4-preview" hidden></div>
+      <div class="ws4-statusbar">
+        <span>6 folders, 1 file</span>
+        <span>12.4 GB free</span>
+      </div>
+    </section>
+
+    <!-- ================= WORKSPACE 5 ================= -->
+    <section class="workspace" id="ws-5">
+      <div class="window ws5-terminal">
+        <div class="window-titlebar">
+          <span class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
+          <span>dazai@archlinux:~</span>
+        </div>
+        <div class="window-body">
+          <div><span class="nf-label">$</span> cat intro.txt</div>
+          <div class="ws5-tagline">I break things,<br>then build better ones.<span class="cursor"></span></div>
+        </div>
+      </div>
+      <div class="panel ws5-system">
+        <h4>System</h4>
+        <div class="bar-row"><span class="bar-label">CPU</span><span class="bar-track"><span class="bar-fill" id="bar-cpu"></span></span><span class="bar-val" id="val-cpu">8%</span></div>
+        <div class="bar-row"><span class="bar-label">RAM</span><span class="bar-track"><span class="bar-fill" id="bar-ram" style="width:31%"></span></span><span class="bar-val">2.4G / 7.8G</span></div>
+        <div class="bar-row"><span class="bar-label">Disk</span><span class="bar-track"><span class="bar-fill" id="bar-disk" style="width:32%"></span></span><span class="bar-val">32G / 100G</span></div>
+        <div class="bar-row"><span class="bar-label">Up</span><span class="bar-track" style="visibility:hidden"></span><span class="bar-val" id="val-uptime">0m 0s</span></div>
+      </div>
+      <div class="panel ws5-projects">
+        <h4>Recent Projects</h4>
+        <ul id="ws5-projlist"></ul>
+      </div>
+      <div class="panel ws5-tech">
+        <h4>Technologies</h4>
+        <div class="tech-grid">
+          <div class="tech-badge">JS</div>
+          <div class="tech-badge">Node</div>
+          <div class="tech-badge">Mongo</div>
+          <div class="tech-badge">HTML5</div>
+          <div class="tech-badge">CSS3</div>
+          <div class="tech-badge">Java</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
