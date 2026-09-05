@@ -178,7 +178,7 @@
   .ws1-dock{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:2;display:flex;align-items:center;gap:7px;background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;padding:7px 9px;box-shadow:0 14px 34px rgba(0,0,0,.45);}
   .dock-sep{width:1px;height:22px;background:var(--border);flex-shrink:0;}
   .ws1-dock .dock-btn.ico-square{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .12s ease;}
-  .dock-icon-img{width:18px;height:18px;object-fit:contain;pointer-events:none;}
+  .dock-icon-img{width:26px;height:26px;object-fit:contain;border-radius:6px;pointer-events:none;}
   .ws1-dock .dock-btn.ico-round{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#1c2128;color:var(--text-dim);font-size:9.5px;font-weight:600;}
   .ws1-dock .dock-btn.ico-square:hover, .ws1-dock .dock-btn.ico-round:hover{transform:translateY(-3px);}
   .ico-menu{background:var(--green);}

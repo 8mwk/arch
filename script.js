@@ -168,6 +168,12 @@
     state.booted = true;
     loginOverlay.classList.add("done");
     setTimeout(()=>{ loginOverlay.style.display = "none"; }, 550);
+    applyHashWorkspace();
+  }
+
+  function applyHashWorkspace(){
+    const m = location.hash.match(/ws=(\d)/);
+    if(m) setWorkspace(m[1]);
   }
 
   kernelOverlay.addEventListener("click", ()=>{ kIdx = KERNEL_LINES.length; showLogin(); });
@@ -185,6 +191,12 @@
   }
   document.querySelectorAll(".ws-pill").forEach(p=>p.addEventListener("click", ()=>setWorkspace(p.dataset.ws)));
   document.querySelectorAll(".dock-btn[data-ws]").forEach(b=>b.addEventListener("click", ()=>setWorkspace(b.dataset.ws)));
+  document.getElementById("ws1-dock-terminal")?.addEventListener("click", ()=>{
+    window.open(window.location.pathname + "#ws=3", "_blank", "width=900,height=650");
+  });
+  document.getElementById("ws1-dock-filemanager")?.addEventListener("click", ()=>{
+    window.open(window.location.pathname + "#ws=4", "_blank", "width=1000,height=650");
+  });
   document.getElementById("ws2-code").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
   document.getElementById("ws2-contact").addEventListener("click", ()=>setWorkspace(1));
 
@@ -270,7 +282,7 @@
       menuBtn.classList.remove("active");
     });
   });
-  document.getElementById("ws1-menu-github").addEventListener("click", ()=>{
+  document.getElementById("ws1-menu-github")?.addEventListener("click", ()=>{
     window.open("https://github.com/8mwk","_blank");
     startMenu.hidden = true;
     menuBtn.classList.remove("active");
