@@ -254,17 +254,12 @@
   .dock-btn:hover{color:var(--green);background:#15291d;}
 
   /* ================= WORKSPACE 3 — Terminal ================= */
-  #ws-3.active{display:flex;gap:16px;height:100%;}
-  .ws3-main{flex:1;display:flex;flex-direction:column;min-width:0;}
-  .ws3-window{flex:1;display:flex;flex-direction:column;min-height:0;}
-  .ws3-window .window-body{flex:1;display:flex;flex-direction:column;font-size:12.5px;min-height:0;}
+  #ws-3.active{display:flex;height:100%;}
+  .ws3-body{flex:1;display:flex;flex-direction:column;min-height:0;font-size:12.5px;padding:2px;}
   #ws3-log{flex:1;overflow:auto;white-space:pre-wrap;word-break:break-word;}
   .ws3-inputline{display:flex;gap:6px;align-items:center;margin-top:8px;flex-shrink:0;}
   .ws3-prompt{color:var(--green);white-space:nowrap;}
   #ws3-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:12.5px;}
-  .ws3-status{margin-top:8px;font-size:10.5px;color:#05070a;background:var(--green);padding:4px 10px;border-radius:4px;display:flex;justify-content:space-between;flex-shrink:0;}
-  .ws3-side{width:220px;flex-shrink:0;}
-  .ws3-side .window-body{font-size:11.5px;}
 
   /* ================= WORKSPACE 4 — File manager ================= */
   #ws-4.active{display:flex;flex-direction:column;height:100%;gap:10px;}
@@ -358,7 +353,6 @@
     #ws-2.active .ws2-main{flex-direction:column;}
     .ws2-projects{width:100%;}
     #ws-3.active{flex-direction:column;}
-    .ws3-side{width:100%;}
     .ws4-body{flex-direction:column;}
     .ws4-sidebar{width:100%;display:flex;flex-wrap:wrap;gap:2px;border-right:0;border-bottom:1px solid var(--border);padding:6px 8px;}
     .ws4-tree-root{display:none;}

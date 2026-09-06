@@ -442,7 +442,7 @@
     }
   });
   document.getElementById("ws-3").addEventListener("click", ()=>ws3Input.focus());
-  document.getElementById("ws3-side-body").innerHTML = neofetchHTML();
+  printLine(neofetchHTML());
 
   /* ---------------- workspace 4: file manager ---------------- */
   const ws4Preview = document.getElementById("ws4-preview");
