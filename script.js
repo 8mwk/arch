@@ -279,8 +279,45 @@
   setInterval(randomStats, 3500);
 
   /* ---------------- workspace 1: desktop icons + widgets ---------------- */
+  const FILE_META = {
+    about: "about.py",
+    projects: "projects.json",
+    skills: "skills.js",
+    experience: "experience.ts",
+    contact: "contact.jsx",
+    certificates: "certificates.yml",
+    readme: "README.md"
+  };
+  let fileWinZ = 10;
+  function openFileWindow(key){
+    const layer = document.getElementById("ws1-filewin-layer");
+    if(!layer) return;
+    let win = document.getElementById("ws1-filewin-" + key);
+    if(win){
+      win.style.zIndex = ++fileWinZ;
+      return;
+    }
+    const openCount = layer.querySelectorAll(".ws1-filewin").length;
+    const offset = (openCount % 5) * 22;
+    win = document.createElement("div");
+    win.className = "window ws1-filewin";
+    win.id = "ws1-filewin-" + key;
+    win.style.top = `calc(16% + ${offset}px)`;
+    win.style.left = `calc(50% - 210px + ${offset}px)`;
+    win.style.zIndex = ++fileWinZ;
+    win.innerHTML = `
+      <div class="window-titlebar">
+        <span class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
+        <span>${FILE_META[key] || key}</span>
+        <button class="ws1-filewin-close" aria-label="Close">✕</button>
+      </div>
+      <div class="window-body">${contentHTML(key)}</div>`;
+    win.addEventListener("mousedown", ()=>{ win.style.zIndex = ++fileWinZ; });
+    win.querySelector(".ws1-filewin-close").addEventListener("click", ()=>{ win.remove(); });
+    layer.appendChild(win);
+  }
   document.querySelectorAll(".ws1-icon[data-key]").forEach(el=>{
-    el.addEventListener("click", ()=>openFileManagerPath(el.dataset.key));
+    el.addEventListener("click", ()=>openFileWindow(el.dataset.key));
   });
   document.getElementById("ws1-icon-github").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
   document.getElementById("ws1-dock-github").addEventListener("click", ()=>window.open("https://github.com/8mwk","_blank"));
