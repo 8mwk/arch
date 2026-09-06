@@ -168,7 +168,13 @@
 
   function applyHashWorkspace(){
     const m = location.hash.match(/ws=(\d)/);
-    if(m) setWorkspace(m[1]);
+    if(m){ setWorkspace(m[1], {noPersist:true}); return; }
+    if(!document.body.classList.contains("embedded-window")){
+      try{
+        const saved = localStorage.getItem("dazai_last_ws");
+        if(saved) setWorkspace(saved);
+      }catch(e){}
+    }
   }
   function getHashParam(name){
     const m = location.hash.match(new RegExp(name+"=([\\w.-]+)"));
@@ -189,12 +195,32 @@
     setTimeout(printNextKernelLine, 300);
   }
 
-  /* ---------------- workspace switching ---------------- */
-  function setWorkspace(n){
-    document.querySelectorAll(".workspace").forEach(w=>w.classList.remove("active"));
+  /* ---------------- workspace switching (with Hyprland-style slide transition) ---------------- */
+  const WS_TITLES = {1:"~/portfolio",2:"~/portfolio (tiled)",3:"~/portfolio/terminal",4:"~/portfolio (files)",5:"~/portfolio/dashboard"};
+  let currentWs = 1;
+  function setWorkspace(n, opts){
+    n = Number(n);
+    if(!n || n === currentWs) return;
+    opts = opts || {};
+    const dir = n > currentWs ? "right" : "left";
+    const prev = document.querySelector(".workspace.active");
     const target = document.getElementById("ws-"+n);
-    if(target) target.classList.add("active");
+    if(!target){ return; }
+    document.querySelectorAll(".workspace").forEach(w=>w.classList.remove("ws-exit-left","ws-exit-right","ws-enter-left","ws-enter-right"));
+    if(prev && prev !== target){
+      prev.classList.add(dir === "right" ? "ws-exit-left" : "ws-exit-right");
+      setTimeout(()=>{ prev.classList.remove("active","ws-exit-left","ws-exit-right"); }, 210);
+    }
+    target.classList.add(dir === "right" ? "ws-enter-right" : "ws-enter-left");
+    target.classList.add("active");
+    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ target.classList.remove("ws-enter-left","ws-enter-right"); }); });
     document.querySelectorAll(".ws-pill").forEach(p=>p.classList.toggle("active", p.dataset.ws === String(n)));
+    const titleEl = document.getElementById("active-window-title");
+    if(titleEl) titleEl.textContent = WS_TITLES[n] || "~/portfolio";
+    currentWs = n;
+    if(!opts.noPersist){
+      try{ localStorage.setItem("dazai_last_ws", String(n)); }catch(e){}
+    }
   }
   document.querySelectorAll(".ws-pill").forEach(p=>p.addEventListener("click", ()=>setWorkspace(p.dataset.ws)));
   document.querySelectorAll(".dock-btn[data-ws]").forEach(b=>b.addEventListener("click", ()=>setWorkspace(b.dataset.ws)));
@@ -256,6 +282,10 @@
     const loginDate = document.getElementById("login-date");
     if(loginTime) loginTime.textContent = `${hh}:${mm}`;
     if(loginDate) loginDate.textContent = `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
+    const lockTime = document.getElementById("lock-time");
+    const lockDate = document.getElementById("lock-date");
+    if(lockTime) lockTime.textContent = `${hh}:${mm}`;
+    if(lockDate) lockDate.textContent = `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
     const nfUp = document.getElementById("nf-uptime");
     if(nfUp) nfUp.textContent = uptimeShort();
     const valUp = document.getElementById("val-uptime");
@@ -365,8 +395,10 @@
       ["about","About me"], ["skills","My skills"], ["projects","My projects"],
       ["experience","Experience"], ["contact","Contact me"], ["socials","Social links"],
       ["neofetch","System info"], ["ls","List sections"], ["clear","Clear screen"],
-      ["wallpaper <url>","Set desktop wallpaper"]
-    ].map(([c,d])=>`  <span class="nf-label">${c}</span>${" ".repeat(Math.max(1,12-c.length))}- ${d}`).join("<br>");
+      ["wallpaper <url>","Set desktop wallpaper"], ["theme <name>","mocha/latte/frappe/macchiato"],
+      ["lock","Lock the session"], ["hyprctl","Monitor & layout info"], ["pactl","Audio status"],
+      ["achievements","List unlocked achievements"]
+    ].map(([c,d])=>`  <span class="nf-label">${c}</span>${" ".repeat(Math.max(1,16-c.length))}- ${d}`).join("<br>");
   }
   const WALLPAPER_KEY = "dazai_wallpaper_url";
   function setWallpaper(url){
@@ -554,4 +586,517 @@
 
   /* ---------------- workspace 5: recent projects ---------------- */
   document.getElementById("ws5-projlist").innerHTML = CONTENT.projects.slice(0,5).map(p=>`<li>${p.name}</li>`).join("");
+
+  /* ================================================================
+     HYPRLAND EXTENSIONS
+     Notifications · OSD · Quick Settings · Launcher · Overview ·
+     Lock screen · Screensaver · Keybinds · Window drag/resize/max ·
+     Themes · DND · Achievements · Easter eggs
+     ================================================================ */
+
+  /* ---------- helpers ---------- */
+  function prefGet(key, fallback){ try{ const v = localStorage.getItem(key); return v === null ? fallback : v; }catch(e){ return fallback; } }
+  function prefSet(key, val){ try{ localStorage.setItem(key, val); }catch(e){} }
+
+  /* ---------- notifications (dunst-style) ---------- */
+  const notifStack = document.getElementById("notif-stack");
+  function showNotification(title, body, ms){
+    if(!notifStack) return;
+    if(document.body.classList.contains("dnd-on")) return;
+    ms = ms || 4200;
+    const el = document.createElement("div");
+    el.className = "notif";
+    el.innerHTML = `<button class="notif-close">✕</button><div class="notif-head">🔔 ${esc(title)}</div><div class="notif-body">${esc(body||"")}</div><div class="notif-bar" style="animation-duration:${ms}ms"></div>`;
+    notifStack.appendChild(el);
+    const kill = ()=>{ el.classList.add("notif-out"); setTimeout(()=>el.remove(), 220); };
+    el.querySelector(".notif-close").addEventListener("click", kill);
+    setTimeout(kill, ms);
+  }
+  window.showNotification = showNotification;
+
+  /* ---------- copy-to-clipboard toasts on contact links ---------- */
+  function toast(msg){
+    const el = document.createElement("div");
+    el.className = "copy-toast";
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 1650);
+  }
+  document.addEventListener("click", (e)=>{
+    const link = e.target.closest && e.target.closest('.window-body a[href^="http"], .ws4-preview a[href^="http"]');
+    if(link && e.altKey){
+      e.preventDefault();
+      navigator.clipboard?.writeText(link.href).then(()=>toast("Copied: "+link.href)).catch(()=>{});
+    }
+  });
+
+  /* ---------- DND ---------- */
+  const dndIndicator = document.getElementById("dnd-indicator");
+  function setDnd(on){
+    document.body.classList.toggle("dnd-on", on);
+    if(dndIndicator) dndIndicator.hidden = !on;
+    prefSet("dazai_dnd", on ? "1" : "0");
+    document.querySelectorAll('.qs-toggle[data-toggle="dnd"]').forEach(b=>b.classList.toggle("on", on));
+  }
+  setDnd(prefGet("dazai_dnd","0") === "1");
+
+  /* ---------- theming ---------- */
+  const THEMES = [
+    {id:"mocha", name:"Mocha", swatch:"#7ee787"},
+    {id:"latte", name:"Latte", swatch:"#40a02b"},
+    {id:"frappe", name:"Frappé", swatch:"#a6d189"},
+    {id:"macchiato", name:"Macchiato", swatch:"#a6da95"}
+  ];
+  function applyTheme(id){
+    THEMES.forEach(t=>document.body.classList.remove("theme-"+t.id));
+    if(id !== "mocha") document.body.classList.add("theme-"+id);
+    prefSet("dazai_theme", id);
+    document.querySelectorAll(".qs-theme-dot").forEach(d=>d.classList.toggle("active", d.dataset.theme === id));
+  }
+  const qsThemes = document.getElementById("qs-themes");
+  if(qsThemes){
+    qsThemes.innerHTML = THEMES.map(t=>`<span class="qs-theme-dot" data-theme="${t.id}" style="background:${t.swatch}" title="${t.name}"></span>`).join("");
+    qsThemes.querySelectorAll(".qs-theme-dot").forEach(d=>d.addEventListener("click", ()=>applyTheme(d.dataset.theme)));
+  }
+  applyTheme(prefGet("dazai_theme","mocha"));
+
+  /* ---------- quick settings panel ---------- */
+  const qsPanel = document.getElementById("quicksettings-panel");
+  function toggleQS(force){
+    if(!qsPanel) return;
+    qsPanel.hidden = typeof force === "boolean" ? !force : !qsPanel.hidden;
+  }
+  document.getElementById("tray-volume")?.addEventListener("click", ()=>toggleQS());
+  document.getElementById("tray-wifi")?.addEventListener("click", ()=>toggleQS());
+  document.getElementById("tray-bluetooth")?.addEventListener("click", ()=>toggleQS());
+  document.getElementById("tray-battery")?.addEventListener("click", ()=>toggleQS());
+  document.getElementById("btn-clock")?.addEventListener("click", ()=>toggleQS());
+  document.addEventListener("click", (e)=>{
+    if(qsPanel && !qsPanel.hidden && !qsPanel.contains(e.target) && !e.target.closest(".tray-btn")){
+      qsPanel.hidden = true;
+    }
+  });
+  ["wifi","bluetooth","dnd","nightlight"].forEach(key=>{
+    const btn = qsPanel?.querySelector(`.qs-toggle[data-toggle="${key}"]`);
+    if(!btn) return;
+    const stored = prefGet("dazai_qs_"+key, key==="wifi"||key==="bluetooth" ? "1" : "0");
+    const on = stored === "1";
+    if(key === "dnd"){ /* handled by setDnd */ }
+    else btn.classList.toggle("on", on);
+    if(key === "nightlight") document.body.classList.toggle("nightlight-on", on);
+    btn.addEventListener("click", ()=>{
+      if(key === "dnd"){
+        setDnd(!document.body.classList.contains("dnd-on"));
+        showNotification("Do Not Disturb", document.body.classList.contains("dnd-on") ? "Notifications silenced." : "Notifications resumed.");
+        return;
+      }
+      const nowOn = !btn.classList.contains("on");
+      btn.classList.toggle("on", nowOn);
+      prefSet("dazai_qs_"+key, nowOn ? "1" : "0");
+      if(key === "nightlight") document.body.classList.toggle("nightlight-on", nowOn);
+      if(key === "wifi") showNotification("Network", nowOn ? "Wi-Fi enabled." : "Wi-Fi disabled.");
+      if(key === "bluetooth") showNotification("Bluetooth", nowOn ? "Bluetooth enabled." : "Bluetooth disabled.");
+    });
+  });
+  document.getElementById("qs-lock-btn")?.addEventListener("click", ()=>{ toggleQS(false); lockSession(); });
+
+  /* ---------- OSD (volume / brightness) ---------- */
+  let volumeLevel = Number(prefGet("dazai_volume", "70"));
+  let brightnessLevel = Number(prefGet("dazai_brightness", "100"));
+  let mutedState = prefGet("dazai_muted","0") === "1";
+  const qsVolume = document.getElementById("qs-volume"), qsVolumeVal = document.getElementById("qs-volume-val");
+  const qsBrightness = document.getElementById("qs-brightness"), qsBrightnessVal = document.getElementById("qs-brightness-val");
+  function applyVolume(v, showOsd){
+    volumeLevel = Math.max(0, Math.min(100, v));
+    prefSet("dazai_volume", String(volumeLevel));
+    if(qsVolume) qsVolume.value = volumeLevel;
+    if(qsVolumeVal) qsVolumeVal.textContent = (mutedState ? "Muted" : volumeLevel + "%");
+    if(showOsd) showOsd_("osd-volume","osd-volume-fill", mutedState ? 0 : volumeLevel, mutedState ? "🔇" : (volumeLevel>50?"🔊":volumeLevel>0?"🔉":"🔈"));
+  }
+  function applyBrightness(v, showOsd){
+    brightnessLevel = Math.max(30, Math.min(100, v));
+    prefSet("dazai_brightness", String(brightnessLevel));
+    if(qsBrightness) qsBrightness.value = brightnessLevel;
+    if(qsBrightnessVal) qsBrightnessVal.textContent = brightnessLevel + "%";
+    document.body.style.filter = brightnessLevel < 100 ? `brightness(${0.55 + brightnessLevel/100*0.45})` : "";
+    if(showOsd) showOsd_("osd-brightness","osd-brightness-fill", brightnessLevel, "☀");
+  }
+  function showOsd_(elId, fillId, pct, icon){
+    const el = document.getElementById(elId), fill = document.getElementById(fillId);
+    if(!el || !fill) return;
+    fill.style.width = pct + "%";
+    el.querySelector(".osd-icon").textContent = icon;
+    el.hidden = false;
+    el.style.animation = "none"; void el.offsetWidth; el.style.animation = "";
+    clearTimeout(el._t);
+    el._t = setTimeout(()=>{ el.hidden = true; }, 1550);
+  }
+  qsVolume?.addEventListener("input", (e)=>{ mutedState = false; applyVolume(Number(e.target.value), true); });
+  qsBrightness?.addEventListener("input", (e)=>applyBrightness(Number(e.target.value), true));
+  applyVolume(volumeLevel,false); applyBrightness(brightnessLevel,false);
+
+  /* ---------- app launcher (wofi-style) ---------- */
+  const LAUNCHER_APPS = [
+    {icon:"🏠", name:"Home Desktop", sub:"Workspace 1", action:()=>setWorkspace(1)},
+    {icon:"⬡", name:"Tiled Workspace", sub:"Workspace 2", action:()=>setWorkspace(2)},
+    {icon:"❯_", name:"Terminal", sub:"Workspace 3", action:()=>setWorkspace(3)},
+    {icon:"📁", name:"File Manager", sub:"Workspace 4", action:()=>setWorkspace(4)},
+    {icon:"📊", name:"Dashboard", sub:"Workspace 5", action:()=>setWorkspace(5)},
+    {icon:"PY", name:"about.py", sub:"About me", action:()=>openFileWindow("about")},
+    {icon:"JSON", name:"projects.json", sub:"Projects", action:()=>openFileWindow("projects")},
+    {icon:"JS", name:"skills.js", sub:"Skills", action:()=>openFileWindow("skills")},
+    {icon:"TS", name:"experience.ts", sub:"Experience", action:()=>openFileWindow("experience")},
+    {icon:"JSX", name:"contact.jsx", sub:"Contact", action:()=>openFileWindow("contact")},
+    {icon:"", name:"GitHub", sub:"github.com/8mwk", action:()=>window.open("https://github.com/8mwk","_blank")},
+    {icon:"⏻", name:"Lock Session", sub:"Alt+L", action:()=>lockSession()},
+    {icon:"⚙", name:"Quick Settings", sub:"Wi-Fi, volume, theme", action:()=>toggleQS(true)},
+    {icon:"⌨", name:"Keybind Cheatsheet", sub:"Alt+/", action:()=>toggleKeycheat(true)},
+    {icon:"⊞", name:"Workspace Overview", sub:"Alt+Tab", action:()=>toggleOverview(true)}
+  ];
+  const launcherOverlay = document.getElementById("launcher-overlay");
+  const launcherInput = document.getElementById("launcher-input");
+  const launcherResults = document.getElementById("launcher-results");
+  let launcherSel = 0, launcherFiltered = LAUNCHER_APPS.slice();
+  function renderLauncher(){
+    if(!launcherFiltered.length){
+      launcherResults.innerHTML = `<div class="launcher-empty">No matches.</div>`;
+      return;
+    }
+    launcherResults.innerHTML = launcherFiltered.map((a,i)=>
+      `<button class="launcher-item${i===launcherSel?" sel":""}" data-i="${i}"><span class="li-icon">${a.icon}</span>${esc(a.name)}<span class="li-sub">${esc(a.sub)}</span></button>`
+    ).join("");
+    launcherResults.querySelectorAll(".launcher-item").forEach(btn=>{
+      btn.addEventListener("click", ()=>runLauncherItem(Number(btn.dataset.i)));
+    });
+  }
+  function runLauncherItem(i){
+    const app = launcherFiltered[i];
+    if(!app) return;
+    toggleLauncher(false);
+    app.action();
+  }
+  function toggleLauncher(force){
+    if(!launcherOverlay) return;
+    const willShow = typeof force === "boolean" ? force : launcherOverlay.hidden;
+    launcherOverlay.hidden = !willShow;
+    if(willShow){
+      launcherInput.value = ""; launcherFiltered = LAUNCHER_APPS.slice(); launcherSel = 0;
+      renderLauncher();
+      setTimeout(()=>launcherInput.focus(), 20);
+    }
+  }
+  document.getElementById("btn-launcher")?.addEventListener("click", ()=>toggleLauncher(true));
+  launcherInput?.addEventListener("input", ()=>{
+    const q = launcherInput.value.trim().toLowerCase();
+    launcherFiltered = !q ? LAUNCHER_APPS.slice() : LAUNCHER_APPS.filter(a => a.name.toLowerCase().includes(q) || a.sub.toLowerCase().includes(q));
+    launcherSel = 0;
+    renderLauncher();
+  });
+  launcherInput?.addEventListener("keydown", (e)=>{
+    if(e.key === "ArrowDown"){ e.preventDefault(); launcherSel = Math.min(launcherFiltered.length-1, launcherSel+1); renderLauncher(); }
+    else if(e.key === "ArrowUp"){ e.preventDefault(); launcherSel = Math.max(0, launcherSel-1); renderLauncher(); }
+    else if(e.key === "Enter"){ runLauncherItem(launcherSel); }
+    else if(e.key === "Escape"){ toggleLauncher(false); }
+  });
+  launcherOverlay?.addEventListener("click", (e)=>{ if(e.target === launcherOverlay) toggleLauncher(false); });
+
+  /* ---------- workspace overview (exposé) ---------- */
+  const overviewOverlay = document.getElementById("overview-overlay");
+  const overviewGrid = document.getElementById("overview-grid");
+  const WS_NAMES = {1:"Home",2:"Tiled",3:"Terminal",4:"Files",5:"Dashboard"};
+  function buildOverview(){
+    if(!overviewGrid) return;
+    overviewGrid.innerHTML = [1,2,3,4,5].map(n=>
+      `<button class="overview-card${n===currentWs?" current":""}" data-ws="${n}"><span class="oc-num">${n}</span><span>${WS_NAMES[n]}</span></button>`
+    ).join("");
+    overviewGrid.querySelectorAll(".overview-card").forEach(c=>{
+      c.addEventListener("click", ()=>{ toggleOverview(false); setWorkspace(c.dataset.ws); });
+    });
+  }
+  function toggleOverview(force){
+    if(!overviewOverlay) return;
+    const willShow = typeof force === "boolean" ? force : overviewOverlay.hidden;
+    if(willShow) buildOverview();
+    overviewOverlay.hidden = !willShow;
+  }
+  document.getElementById("btn-overview")?.addEventListener("click", ()=>toggleOverview());
+  overviewOverlay?.addEventListener("click", (e)=>{ if(e.target === overviewOverlay) toggleOverview(false); });
+
+  /* ---------- lock screen ---------- */
+  const lockScreen = document.getElementById("lock-screen");
+  function lockSession(){
+    if(!lockScreen) return;
+    lockScreen.hidden = false;
+    lockScreen.classList.remove("hide");
+  }
+  function unlockSession(){
+    if(!lockScreen || lockScreen.hidden) return;
+    lockScreen.classList.add("hide");
+    setTimeout(()=>{ lockScreen.hidden = true; }, 350);
+  }
+  lockScreen?.addEventListener("click", unlockSession);
+  window.addEventListener("keydown", (e)=>{
+    if(lockScreen && !lockScreen.hidden && (e.key === "Enter" || e.key === " ")) unlockSession();
+  });
+
+  /* ---------- keybind cheatsheet ---------- */
+  const keycheatOverlay = document.getElementById("keycheat-overlay");
+  const KEYBINDS = [
+    ["1 – 5","Switch workspace"],["Alt+D","Open app launcher"],["Alt+Tab","Workspace overview"],
+    ["Alt+L","Lock session"],["Alt+E","Open file manager"],["Alt+Return","Open terminal"],
+    ["Alt+Q","Close focused window"],["Alt+F","Toggle maximize focused window"],
+    ["Alt+Shift+W","Cycle wallpaper"],["Alt+Shift+P / PrtSc","Screenshot flash"],
+    ["Alt+, / Alt+.","Volume down / up"],["Alt+M","Mute toggle"],
+    ["Alt+Shift+, / .","Brightness down / up"],["Alt+N","Toggle Do Not Disturb"],
+    ["Alt+Shift+T","Cycle theme"],["Alt+/","This cheatsheet"],["Esc","Close overlay"]
+  ];
+  document.getElementById("keycheat-grid").innerHTML = KEYBINDS.map(([k,d])=>`<div class="kc-row"><span>${esc(d)}</span><span class="kc-key">${esc(k)}</span></div>`).join("");
+  function toggleKeycheat(force){
+    if(!keycheatOverlay) return;
+    keycheatOverlay.hidden = typeof force === "boolean" ? !force : !keycheatOverlay.hidden;
+  }
+  keycheatOverlay?.addEventListener("click", (e)=>{ if(e.target === keycheatOverlay) toggleKeycheat(false); });
+
+  /* ---------- screenshot flash ---------- */
+  const screenshotFlash = document.getElementById("screenshot-flash");
+  function takeScreenshot(){
+    if(!screenshotFlash) return;
+    screenshotFlash.classList.remove("flash"); void screenshotFlash.offsetWidth; screenshotFlash.classList.add("flash");
+    showNotification("Screenshot", "Saved to ~/Pictures/Screenshots (simulated).");
+  }
+
+  /* ---------- idle screensaver ---------- */
+  const screensaver = document.getElementById("screensaver");
+  const screensaverClock = document.getElementById("screensaver-clock");
+  let idleTimer = null;
+  function resetIdle(){
+    if(screensaver && !screensaver.hidden){ screensaver.hidden = true; }
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(()=>{
+      if(!screensaver || !state.booted) return;
+      if(!lockScreen.hidden || !launcherOverlay.hidden || !overviewOverlay.hidden) { resetIdle(); return; }
+      screensaver.hidden = false;
+    }, 90000);
+  }
+  function tickScreensaverClock(){
+    if(screensaverClock) screensaverClock.textContent = document.querySelector(".clock")?.textContent || "";
+  }
+  setInterval(tickScreensaverClock, 1000);
+  ["mousemove","mousedown","keydown","touchstart","scroll"].forEach(evt=>window.addEventListener(evt, resetIdle, {passive:true}));
+  resetIdle();
+
+  /* ---------- global keybinds (Hyprland-style, using Alt as the "Super" modifier) ---------- */
+  window.addEventListener("keydown", (e)=>{
+    if(!state.booted) return;
+    if(document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")){
+      if(e.key === "Escape") document.activeElement.blur();
+      return;
+    }
+    if(e.key === "Escape"){
+      if(!launcherOverlay.hidden) toggleLauncher(false);
+      else if(!overviewOverlay.hidden) toggleOverview(false);
+      else if(!keycheatOverlay.hidden) toggleKeycheat(false);
+      else if(!qsPanel.hidden) toggleQS(false);
+      return;
+    }
+    if(!e.altKey && e.key === "?") { toggleKeycheat(); return; }
+    if(!e.altKey) return;
+    switch(e.key){
+      case "d": case "D": e.preventDefault(); toggleLauncher(); break;
+      case "Tab": e.preventDefault(); toggleOverview(); break;
+      case "l": case "L": e.preventDefault(); lockSession(); break;
+      case "e": case "E": e.preventDefault(); setWorkspace(4); break;
+      case "Enter": e.preventDefault(); setWorkspace(3); break;
+      case "/": e.preventDefault(); toggleKeycheat(); break;
+      case "m": case "M": e.preventDefault(); mutedState = !mutedState; prefSet("dazai_muted", mutedState?"1":"0"); applyVolume(volumeLevel, true); break;
+      case "n": case "N": e.preventDefault(); setDnd(!document.body.classList.contains("dnd-on")); showNotification("Do Not Disturb", document.body.classList.contains("dnd-on") ? "Notifications silenced." : "Notifications resumed."); break;
+      case ",": e.preventDefault();
+        if(e.shiftKey) applyBrightness(brightnessLevel-10, true); else { mutedState=false; applyVolume(volumeLevel-10, true); } break;
+      case ".": e.preventDefault();
+        if(e.shiftKey) applyBrightness(brightnessLevel+10, true); else { mutedState=false; applyVolume(volumeLevel+10, true); } break;
+      case "q": case "Q": {
+        e.preventDefault();
+        const wins = Array.from(document.querySelectorAll(".ws1-filewin"));
+        if(wins.length) wins[wins.length-1].remove();
+        break;
+      }
+      case "f": case "F": {
+        e.preventDefault();
+        const wins = Array.from(document.querySelectorAll(".ws1-filewin"));
+        if(wins.length) toggleMaximize(wins[wins.length-1]);
+        break;
+      }
+      case "w": case "W":
+        if(e.shiftKey){ e.preventDefault(); cycleWallpaper(); }
+        break;
+      case "p": case "P":
+        if(e.shiftKey){ e.preventDefault(); takeScreenshot(); }
+        break;
+      case "t": case "T":
+        if(e.shiftKey){
+          e.preventDefault();
+          const ids = THEMES.map(t=>t.id);
+          const cur = prefGet("dazai_theme","mocha");
+          applyTheme(ids[(ids.indexOf(cur)+1) % ids.length]);
+          showNotification("Theme", "Switched to " + THEMES[(ids.indexOf(cur)+1) % ids.length].name);
+        }
+        break;
+    }
+  });
+  window.addEventListener("keydown", (e)=>{ if(e.key === "PrintScreen") takeScreenshot(); });
+
+  /* ---------- wallpaper cycling ---------- */
+  const WALLPAPER_PRESETS = [
+    "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=60",
+    "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&q=60",
+    "https://images.unsplash.com/photo-1502134249126-9f3755a50d78?w=1200&q=60"
+  ];
+  let wallpaperIdx = -1;
+  function cycleWallpaper(){
+    wallpaperIdx = (wallpaperIdx + 1) % (WALLPAPER_PRESETS.length + 1);
+    if(wallpaperIdx === WALLPAPER_PRESETS.length){
+      resetWallpaper(); try{ localStorage.removeItem("dazai_wallpaper_url"); }catch(e){}
+      showNotification("Wallpaper", "Reset to default.");
+      return;
+    }
+    const url = WALLPAPER_PRESETS[wallpaperIdx];
+    setWallpaper(url);
+    try{ localStorage.setItem("dazai_wallpaper_url", url); }catch(e){}
+    showNotification("Wallpaper", "Cycled to preset " + (wallpaperIdx+1) + ".");
+  }
+
+  /* ---------- draggable / resizable / maximizable floating windows ---------- */
+  function makeDraggable(win){
+    const bar = win.querySelector(".window-titlebar");
+    if(!bar) return;
+    let sx=0, sy=0, ox=0, oy=0, dragging=false;
+    bar.addEventListener("mousedown", (e)=>{
+      if(e.target.closest("button")) return;
+      dragging = true;
+      const rect = win.getBoundingClientRect();
+      sx = e.clientX; sy = e.clientY; ox = rect.left; oy = rect.top;
+      win.style.position = "fixed"; win.style.left = ox+"px"; win.style.top = oy+"px"; win.style.margin = "0";
+      document.body.style.userSelect = "none";
+    });
+    window.addEventListener("mousemove", (e)=>{
+      if(!dragging) return;
+      win.style.left = Math.max(0, ox + (e.clientX-sx)) + "px";
+      win.style.top = Math.max(38, oy + (e.clientY-sy)) + "px";
+    });
+    window.addEventListener("mouseup", ()=>{ dragging=false; document.body.style.userSelect=""; });
+  }
+  function makeResizable(win){
+    const handle = document.createElement("div");
+    handle.className = "ws1-filewin-resize";
+    handle.innerHTML = "◢";
+    win.appendChild(handle);
+    let sx=0, sy=0, sw=0, sh=0, resizing=false;
+    handle.addEventListener("mousedown", (e)=>{
+      e.stopPropagation(); resizing = true;
+      const rect = win.getBoundingClientRect();
+      sx=e.clientX; sy=e.clientY; sw=rect.width; sh=rect.height;
+    });
+    window.addEventListener("mousemove", (e)=>{
+      if(!resizing) return;
+      win.style.width = Math.max(260, sw + (e.clientX-sx)) + "px";
+      win.style.maxHeight = "none";
+      win.style.height = Math.max(160, sh + (e.clientY-sy)) + "px";
+    });
+    window.addEventListener("mouseup", ()=>{ resizing=false; });
+  }
+  function toggleMaximize(win){
+    win.classList.toggle("maximized");
+  }
+  function enhanceFileWindow(win){
+    makeDraggable(win);
+    makeResizable(win);
+    win.addEventListener("mousedown", ()=>{
+      document.querySelectorAll(".ws1-filewin").forEach(w=>w.classList.remove("win-focused"));
+      win.classList.add("win-focused");
+    });
+    const bar = win.querySelector(".window-titlebar");
+    if(bar && !bar.querySelector(".ws1-filewin-max")){
+      const maxBtn = document.createElement("button");
+      maxBtn.className = "ws1-filewin-max";
+      maxBtn.textContent = "▢";
+      maxBtn.title = "Maximize (Alt+F)";
+      maxBtn.addEventListener("click", (e)=>{ e.stopPropagation(); toggleMaximize(win); });
+      const closeBtn = bar.querySelector(".ws1-filewin-close");
+      bar.insertBefore(maxBtn, closeBtn);
+    }
+  }
+  // wrap the original openFileWindow to enhance any newly created window
+  const _origOpenFileWindow = openFileWindow;
+  openFileWindow = function(key){
+    const existed = document.getElementById("ws1-filewin-" + key);
+    _origOpenFileWindow(key);
+    const win = document.getElementById("ws1-filewin-" + key);
+    if(win && !existed) enhanceFileWindow(win);
+  };
+  /* ---------- easter eggs & achievements ---------- */
+  const ACHIEVEMENTS_KEY = "dazai_achievements";
+  function unlockAchievement(id, title){
+    let list = [];
+    try{ list = JSON.parse(localStorage.getItem(ACHIEVEMENTS_KEY) || "[]"); }catch(e){}
+    if(list.includes(id)) return;
+    list.push(id);
+    try{ localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(list)); }catch(e){}
+    showNotification("🏆 Achievement Unlocked", title, 5000);
+  }
+  // Konami code
+  const KONAMI = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
+  let konamiIdx = 0;
+  window.addEventListener("keydown", (e)=>{
+    konamiIdx = (e.key === KONAMI[konamiIdx]) ? konamiIdx+1 : (e.key === KONAMI[0] ? 1 : 0);
+    if(konamiIdx === KONAMI.length){
+      konamiIdx = 0;
+      unlockAchievement("konami", "Found the Konami code.");
+      document.body.style.animation = "none";
+    }
+  });
+
+  /* ---------- extra terminal commands ---------- */
+  const _origRunCommand = runCommand;
+  runCommand = function(raw){
+    const trimmed = raw.trim();
+    const base = trimmed.split(" ")[0].toLowerCase();
+    const extra = {
+      "hyprctl": ()=>printLine("Monitor eDP-1: 1920x1080@60Hz, active workspace 1<br>Layout: dwindle · Gaps: 6px · Border: 2px"),
+      "pactl": ()=>printLine(`Volume: ${mutedState?"muted":volumeLevel+"%"} · Brightness: ${brightnessLevel}%`),
+      "lock": ()=>{ lockSession(); printLine("Locking session…"); },
+      "matrix": ()=>{ printLine('<span style="color:var(--green)">Wake up, Neo…</span>'); unlockAchievement("matrix","Took the red pill (typed 'matrix')."); },
+      "achievements": ()=>{
+        let list = [];
+        try{ list = JSON.parse(localStorage.getItem(ACHIEVEMENTS_KEY) || "[]"); }catch(e){}
+        printLine(list.length ? `Unlocked: ${list.join(", ")}` : "No achievements yet — try 'matrix', the Konami code, or explore.");
+      }
+    };
+    if(base === "theme"){
+      printLine(`<span class="ws3-prompt">dazai@portfolio:~$</span> ${esc(trimmed)}`);
+      const arg = trimmed.slice(5).trim().toLowerCase();
+      const ids = THEMES.map(t=>t.id);
+      if(ids.includes(arg)){ applyTheme(arg); printLine(`Theme set to ${arg}.`); }
+      else printLine(`Usage: theme &lt;${ids.join("|")}&gt;`);
+      return;
+    }
+    if(base === "sudo" && /rm\s+-rf\s+\//.test(trimmed)){
+      printLine(`<span class="ws3-prompt">dazai@portfolio:~$</span> ${esc(trimmed)}`);
+      printLine('<span class="boot-fail">Permission denied — nice try. 🙂</span>');
+      unlockAchievement("rm-rf","Tried to rm -rf / (bold move).");
+      return;
+    }
+    if(extra[base]){
+      printLine(`<span class="ws3-prompt">dazai@portfolio:~$</span> ${esc(trimmed)}`);
+      extra[base]();
+      return;
+    }
+    _origRunCommand(raw);
+  };
+
+  /* ---------- respect persisted quick-toggles: apply on load without duplicate notifications ---------- */
+  document.querySelectorAll(".qs-toggle").forEach(btn=>{
+    const key = btn.dataset.toggle;
+    if(key === "dnd"){ btn.classList.toggle("on", document.body.classList.contains("dnd-on")); }
+  });
+
 })();

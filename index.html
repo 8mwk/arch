@@ -33,26 +33,113 @@
   </div>
 </div>
 
+<!-- ================= Hyprland: lock screen ================= -->
+<div class="lock-screen" id="lock-screen" hidden>
+  <div class="lock-clock">
+    <div class="lock-time" id="lock-time">22:42</div>
+    <div class="lock-date" id="lock-date">Sat, Sep 5</div>
+  </div>
+  <div class="lock-user"><span class="lock-avatar">△</span> dazai</div>
+  <div class="lock-hint">Click anywhere, press Enter, or Alt+L to unlock</div>
+</div>
+
+<!-- ================= Hyprland: wofi-style launcher ================= -->
+<div class="launcher-overlay" id="launcher-overlay" hidden>
+  <div class="launcher-box">
+    <div class="launcher-searchrow">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="launcher-input" class="launcher-input" placeholder="Search apps &amp; sections…" autocomplete="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <div class="launcher-results" id="launcher-results"></div>
+    <div class="launcher-hint"><span>↑↓ navigate</span><span>Enter open</span><span>Esc close</span></div>
+  </div>
+</div>
+
+<!-- ================= Hyprland: workspace overview (exposé) ================= -->
+<div class="overview-overlay" id="overview-overlay" hidden>
+  <div class="overview-title">Workspaces</div>
+  <div class="overview-grid" id="overview-grid"></div>
+  <div class="overview-hint">Click a workspace to jump in · Esc to cancel</div>
+</div>
+
+<!-- ================= Hyprland: quick settings ================= -->
+<div class="quicksettings-panel" id="quicksettings-panel" hidden>
+  <div class="qs-row qs-sliderrow">
+    <span class="qs-slabel">Vol</span>
+    <input type="range" id="qs-volume" min="0" max="100" value="70" class="qs-slider">
+    <span class="qs-sval" id="qs-volume-val">70%</span>
+  </div>
+  <div class="qs-row qs-sliderrow">
+    <span class="qs-slabel">Bright</span>
+    <input type="range" id="qs-brightness" min="30" max="100" value="100" class="qs-slider">
+    <span class="qs-sval" id="qs-brightness-val">100%</span>
+  </div>
+  <div class="qs-toggles" id="qs-toggles">
+    <button class="qs-toggle" data-toggle="wifi"><span class="qs-t-icon">📶</span>Wi‑Fi</button>
+    <button class="qs-toggle" data-toggle="bluetooth"><span class="qs-t-icon">🔷</span>Bluetooth</button>
+    <button class="qs-toggle" data-toggle="dnd"><span class="qs-t-icon">🌙</span>Do Not Disturb</button>
+    <button class="qs-toggle" data-toggle="nightlight"><span class="qs-t-icon">🔥</span>Night Light</button>
+  </div>
+  <div class="qs-themes" id="qs-themes"></div>
+  <button class="qs-lock-btn" id="qs-lock-btn">⏻ Lock Session</button>
+</div>
+
+<!-- ================= Hyprland: on-screen displays ================= -->
+<div class="osd" id="osd-volume" hidden><div class="osd-icon">🔊</div><div class="osd-track"><div class="osd-fill" id="osd-volume-fill"></div></div></div>
+<div class="osd" id="osd-brightness" hidden><div class="osd-icon">☀</div><div class="osd-track"><div class="osd-fill" id="osd-brightness-fill"></div></div></div>
+
+<!-- ================= Hyprland: notifications (dunst-style) ================= -->
+<div class="notif-stack" id="notif-stack"></div>
+
+<!-- ================= misc overlays ================= -->
+<div class="screenshot-flash" id="screenshot-flash"></div>
+<div class="screensaver" id="screensaver" hidden><div class="screensaver-clock" id="screensaver-clock"></div><div class="screensaver-hint">Idle — move mouse or press a key</div></div>
+
+<div class="keycheat-overlay" id="keycheat-overlay" hidden>
+  <div class="keycheat-box">
+    <h3>⌨ Keybinds</h3>
+    <div class="keycheat-grid" id="keycheat-grid"></div>
+    <div class="keycheat-close-hint">Esc or Alt+/ to close</div>
+  </div>
+</div>
+
 <div class="app">
   <div class="topbar">
     <div class="topbar-left">
+      <button class="waybar-btn" id="btn-launcher" title="App Launcher (Alt+D)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg>
+      </button>
       <span class="brand">BAD APPLE</span>
-      <span class="topbar-path">~/portfolio</span>
+      <div class="workspaces" id="topbar-workspaces">
+        <button class="ws-pill active" data-ws="1">1</button>
+        <button class="ws-pill" data-ws="2">2</button>
+        <button class="ws-pill" data-ws="3">3</button>
+        <button class="ws-pill" data-ws="4">4</button>
+        <button class="ws-pill" data-ws="5">5</button>
+      </div>
+      <span class="topbar-path" id="active-window-title">~/portfolio</span>
     </div>
     <div class="topbar-right">
+      <span class="stat dnd-indicator" id="dnd-indicator" hidden title="Do Not Disturb on">🌙 DND</span>
       <span class="stat" id="stat-cpu">Cpu 8%</span>
       <span class="stat" id="stat-mem">Mem 2.4G</span>
-      <span class="stat">
+      <button class="waybar-btn" id="btn-overview" title="Workspace Overview (Alt+Tab)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </button>
+      <button class="stat tray-btn" id="tray-wifi" title="Network">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8.5a16 16 0 0 1 20 0"/><path d="M5 12a11 11 0 0 1 14 0"/><path d="M8.5 15.5a6 6 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/></svg>
-      </span>
-      <span class="stat">
+      </button>
+      <button class="stat tray-btn" id="tray-bluetooth" title="Bluetooth">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11L12 22V2l5.5 5.5-11 11"/></svg>
+      </button>
+      <button class="stat tray-btn" id="tray-volume" title="Volume (Alt+,/.)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M17 9a4 4 0 0 1 0 6"/></svg>
-      </span>
-      <span class="stat">
+      </button>
+      <button class="stat tray-btn" id="tray-battery" title="Battery">
         <svg width="18" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><rect x="20" y="10" width="2" height="4"/><rect x="3" y="8" width="12" height="8" fill="currentColor" stroke="none"/></svg>
         61%
-      </span>
-      <span class="clock">22:42</span>
+      </button>
+      <button class="clock" id="btn-clock" title="Quick Settings">22:42</button>
     </div>
   </div>
 
