@@ -199,7 +199,6 @@
     const target = document.getElementById("ws-"+n);
     if(target) target.classList.add("active");
     document.querySelectorAll(".ws-pill").forEach(p=>p.classList.toggle("active", p.dataset.ws === String(n)));
-    document.body.classList.toggle("explorer-active", String(n) === "4");
   }
   document.querySelectorAll(".ws-pill").forEach(p=>p.addEventListener("click", ()=>setWorkspace(p.dataset.ws)));
   document.querySelectorAll(".dock-btn[data-ws]").forEach(b=>b.addEventListener("click", ()=>setWorkspace(b.dataset.ws)));
@@ -407,36 +406,117 @@
   document.getElementById("ws-3").addEventListener("click", ()=>ws3Input.focus());
   document.getElementById("ws3-side-body").innerHTML = neofetchHTML();
 
-  /* ---------------- workspace 4: file manager (Explorer skin) ---------------- */
+  /* ---------------- workspace 4: file manager ---------------- */
   const ws4Preview = document.getElementById("ws4-preview");
+  const ws4List = document.getElementById("ws4-list");
+  const ws4ItemCount = document.getElementById("ws4-itemcount");
+  const ws4BackBtn = document.getElementById("ws4-back");
+  const ws4UpBtn = document.getElementById("ws4-up");
+
+  const FS_ITEMS = [
+    {key:"about", name:"About", type:"File folder", date:"9/1/2026 8:14 AM"},
+    {key:"projects", name:"Projects", type:"File folder", date:"9/3/2026 11:02 PM"},
+    {key:"skills", name:"Skills", type:"File folder", date:"8/29/2026 6:47 PM"},
+    {key:"experience", name:"Experience", type:"File folder", date:"8/30/2026 2:19 PM"},
+    {key:"contact", name:"Contact", type:"File folder", date:"9/2/2026 9:55 AM"},
+    {key:"certificates", name:"Certificates", type:"File folder", date:"7/12/2026 4:03 PM"},
+    {key:"assets", name:"Assets", type:"File folder", date:"9/4/2026 10:21 AM"},
+    {key:"readme", name:"README.md", type:"Markdown Document", date:"6/9/2026 1:30 PM"}
+  ];
+
+  function rowIconHTML(key){
+    return key === "readme" ? `<span class="file-icon"></span>` : `<span class="folder-icon"></span>`;
+  }
+
+  function renderFileList(items){
+    if(!items.length){
+      ws4List.innerHTML = `<div class="ws4-row-empty">No items match your search.</div>`;
+    } else {
+      ws4List.innerHTML = items.map(it=>`
+        <div class="ws4-row" data-key="${it.key}" tabindex="0">
+          <span class="ws4-row-name"><span class="ws4-row-icon">${rowIconHTML(it.key)}</span>${it.name}</span>
+          <span class="ws4-row-date">${it.date}</span>
+          <span class="ws4-row-type">${it.type}</span>
+        </div>`).join("");
+    }
+    const folders = items.filter(i=>i.key!=="readme").length;
+    const files = items.length - folders;
+    ws4ItemCount.textContent = `${items.length} item${items.length===1?"":"s"}`;
+    ws4List.querySelectorAll(".ws4-row[data-key]").forEach(row=>{
+      row.addEventListener("click", ()=>{
+        ws4List.querySelectorAll(".ws4-row").forEach(r=>r.classList.remove("selected"));
+        row.classList.add("selected");
+        openFileEntry(row.dataset.key);
+      });
+      row.addEventListener("keydown", (e)=>{ if(e.key === "Enter") openFileEntry(row.dataset.key); });
+    });
+  }
+
+  function openFileEntry(key){
+    showPreview(key);
+    document.querySelectorAll(".ws4-place").forEach(p=>p.classList.toggle("active", p.dataset.key === key));
+    if(ws4BackBtn) ws4BackBtn.disabled = false;
+  }
+
   function showPreview(key){
     ws4Preview.hidden = false;
     const title = key === "readme" ? "README.md" : key.charAt(0).toUpperCase() + key.slice(1);
     ws4Preview.innerHTML = `<span class="close" role="button" tabindex="0">✕</span><h4>${title}</h4>${contentHTML(key)}`;
     ws4Preview.querySelector(".close").addEventListener("click", ()=>{ ws4Preview.hidden = true; });
   }
-  document.querySelectorAll(".explorer-row[data-key]").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      document.querySelectorAll(".explorer-row").forEach(r=>r.classList.remove("selected"));
-      el.classList.add("selected");
-      showPreview(el.dataset.key);
-    });
-  });
+
+  renderFileList(FS_ITEMS);
+
   document.querySelectorAll(".ws4-place[data-key]").forEach(el=>{
     el.addEventListener("click", ()=>{
+      const key = el.dataset.key;
       document.querySelectorAll(".ws4-place").forEach(p=>p.classList.remove("active"));
       el.classList.add("active");
-      showPreview(el.dataset.key);
+      if(key){
+        openFileEntry(key);
+      } else {
+        ws4Preview.hidden = true;
+        if(ws4BackBtn) ws4BackBtn.disabled = true;
+      }
     });
   });
-  document.querySelector(".ewc-red")?.addEventListener("click", ()=>{
-    try{ window.parent.postMessage("close-filemanager","*"); }catch(e){}
-    window.close();
+
+  ws4UpBtn?.addEventListener("click", ()=>{
+    ws4Preview.hidden = true;
+    document.querySelectorAll(".ws4-place").forEach(p=>p.classList.toggle("active", !p.dataset.key));
+    if(ws4BackBtn) ws4BackBtn.disabled = true;
   });
+  ws4BackBtn?.addEventListener("click", ()=>{
+    if(ws4BackBtn.disabled) return;
+    ws4Preview.hidden = true;
+    document.querySelectorAll(".ws4-place").forEach(p=>p.classList.toggle("active", !p.dataset.key));
+    ws4BackBtn.disabled = true;
+  });
+  document.querySelectorAll(".ws4-crumb").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      ws4Preview.hidden = true;
+      document.querySelectorAll(".ws4-place").forEach(p=>p.classList.toggle("active", !p.dataset.key));
+      if(ws4BackBtn) ws4BackBtn.disabled = true;
+    });
+  });
+
+  document.getElementById("ws4-search-input")?.addEventListener("input", (e)=>{
+    const q = e.target.value.trim().toLowerCase();
+    renderFileList(q ? FS_ITEMS.filter(i=>i.name.toLowerCase().includes(q)) : FS_ITEMS);
+  });
+
+  document.querySelectorAll(".ws4-action[data-action]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      if(btn.dataset.action === "select"){
+        ws4List.querySelectorAll(".ws4-row").forEach(r=>r.classList.add("selected"));
+      }
+    });
+  });
+
   const pendingPath = getHashParam("path");
   if(pendingPath){
     document.querySelectorAll(".ws4-place").forEach(p=>p.classList.toggle("active", p.dataset.key === pendingPath));
-    showPreview(pendingPath);
+    openFileEntry(pendingPath);
   }
 
   /* ---------------- workspace 5: recent projects ---------------- */
