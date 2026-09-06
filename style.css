@@ -51,6 +51,8 @@
   .stat svg{display:block;}
   .clock{color:var(--text);font-weight:500;}
 
+  body.embedded-window .topbar{display:none;}
+
   .desktop{flex:1;position:relative;overflow:hidden;}
   .workspace{position:absolute;inset:0;display:none;padding:18px;}
   .workspace.active{display:block;}

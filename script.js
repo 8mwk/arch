@@ -188,6 +188,7 @@
     kernelOverlay.style.display = "none";
     loginOverlay.style.display = "none";
     state.booted = true;
+    document.body.classList.add("embedded-window");
     applyHashWorkspace();
   } else {
     setTimeout(printNextKernelLine, 300);
