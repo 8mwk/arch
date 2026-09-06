@@ -87,27 +87,22 @@
   /  /  \\/  \\  \\
  /--/--------\\--\\
 /__/          \\__\\`;
-    return `
-      <div class="nf-ascii">${ascii}</div>
-      <div><span class="nf-label">OS:</span> Arch Linux x86_64</div>
-      <div><span class="nf-label">Host:</span> BAD APPLE Portfolio</div>
-      <div><span class="nf-label">Kernel:</span> 6.8.9-arch1-1</div>
-      <div><span class="nf-label">Uptime:</span> <span id="nf-uptime">${uptimeShort()}</span></div>
-      <div><span class="nf-label">Packages:</span> 1287 (pacman)</div>
-      <div><span class="nf-label">Shell:</span> zsh 5.9</div>
-      <div><span class="nf-label">WM:</span> Hyprland</div>
-      <div><span class="nf-label">Terminal:</span> kitty</div>
-      <div><span class="nf-label">Theme:</span> Catppuccin-Mocha</div>
-      <div><span class="nf-label">Icons:</span> Papirus-Dark</div>
-      <div><span class="nf-label">Memory:</span> 2414MiB / 7820MiB</div>
-      <div class="nf-swatches">
-        <span class="swatch" style="background:#f38ba8"></span>
-        <span class="swatch" style="background:#a6e3a1"></span>
-        <span class="swatch" style="background:#f9e2af"></span>
-        <span class="swatch" style="background:#89b4fa"></span>
-        <span class="swatch" style="background:#cba6f7"></span>
-        <span class="swatch" style="background:#94e2d5"></span>
-      </div>`;
+    const lines = [
+      `<div class="nf-ascii">${ascii}</div>`,
+      `<div><span class="nf-label">OS:</span> Arch Linux x86_64</div>`,
+      `<div><span class="nf-label">Host:</span> BAD APPLE Portfolio</div>`,
+      `<div><span class="nf-label">Kernel:</span> 6.8.9-arch1-1</div>`,
+      `<div><span class="nf-label">Uptime:</span> <span id="nf-uptime">${uptimeShort()}</span></div>`,
+      `<div><span class="nf-label">Packages:</span> 1287 (pacman)</div>`,
+      `<div><span class="nf-label">Shell:</span> zsh 5.9</div>`,
+      `<div><span class="nf-label">WM:</span> Hyprland</div>`,
+      `<div><span class="nf-label">Terminal:</span> kitty</div>`,
+      `<div><span class="nf-label">Theme:</span> Catppuccin-Mocha</div>`,
+      `<div><span class="nf-label">Icons:</span> Papirus-Dark</div>`,
+      `<div><span class="nf-label">Memory:</span> 2414MiB / 7820MiB</div>`,
+      `<div class="nf-swatches"><span class="swatch" style="background:#f38ba8"></span><span class="swatch" style="background:#a6e3a1"></span><span class="swatch" style="background:#f9e2af"></span><span class="swatch" style="background:#89b4fa"></span><span class="swatch" style="background:#cba6f7"></span><span class="swatch" style="background:#94e2d5"></span></div>`
+    ];
+    return lines.join("");
   }
 
   /* ---------------- boot sequence: kernel log ---------------- */
