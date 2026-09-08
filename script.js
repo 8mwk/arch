@@ -251,9 +251,7 @@
     if(e.key >= "1" && e.key <= "5") setWorkspace(e.key);
 
     if(e.key === "Escape"){
-      const cs = document.getElementById("wm-cheatsheet");
       const menu = document.getElementById("wm-contextmenu");
-      if(cs && !cs.hidden) cs.hidden = true;
       if(menu && !menu.hidden) menu.hidden = true;
     }
 
@@ -274,7 +272,6 @@
         case "ArrowUp": if(focused){ e.preventDefault(); wmApplySnap(focused, "max"); } break;
         case "ArrowDown": if(focused){ e.preventDefault(); wmApplySnap(focused, "float"); } break;
         case "Tab": e.preventDefault(); wmCycleFocus(); break;
-        case "/": e.preventDefault(); toggleCheatsheet(); break;
         case "S":
           if(e.shiftKey){ e.preventDefault(); takeScreenshot(); }
           break;
@@ -572,15 +569,6 @@
     notify("Screenshot captured", "Saved to ~/Pictures/Screenshots");
   }
 
-  /* ---------------- cheatsheet ---------------- */
-  function toggleCheatsheet(){
-    const cs = document.getElementById("wm-cheatsheet");
-    if(cs) cs.hidden = !cs.hidden;
-  }
-  document.getElementById("wm-cheatsheet")?.addEventListener("click", (e)=>{
-    if(e.target.id === "wm-cheatsheet") toggleCheatsheet();
-  });
-
   /* ---------------- right-click context menu ---------------- */
   const contextMenuItems = [
     {label:"New Terminal", action:()=>openTerminalWindow()},
@@ -592,7 +580,6 @@
     }},
     {label:"Take Screenshot", action:()=>takeScreenshot()},
     {sep:true},
-    {label:"Keyboard Shortcuts", action:()=>toggleCheatsheet()},
     {label:"Refresh Desktop", action:()=>{ notify("Desktop", "Refreshed"); }}
   ];
   function showContextMenu(x, y){
@@ -1186,7 +1173,7 @@
   /* ---------------- expose WM control bridge for embedded Terminal ---------------- */
   window.wmAPI = {
     notify, showVolumeOSD, takeScreenshot,
-    toggleCheatsheet, setTheme, setGaps, toggleBlurMode, setBlurMode,
+    setTheme, setGaps, toggleBlurMode, setBlurMode,
     wmSnapFocused, wmListWindows, openFileWindow, wmFocus, playMatrixRain
   };
   window.addEventListener("message", (e)=>{

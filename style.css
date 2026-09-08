@@ -372,13 +372,6 @@
   .wm-switcher-item.active{border-color:var(--green);color:var(--green);background:#15291d;}
   .wm-switcher-icon{font-size:20px;display:block;margin-bottom:4px;}
 
-  .wm-cheatsheet{position:absolute;inset:0;z-index:75;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);}
-  .wm-cheatsheet-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;padding:20px 22px;width:min(420px,calc(100% - 32px));box-shadow:0 24px 60px rgba(0,0,0,.55);}
-  .wm-cheatsheet-card h4{margin:0 0 12px;color:var(--green);font-size:14px;}
-  .wm-cheatsheet-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:11.5px;}
-  .wm-cheatsheet-grid span:nth-child(odd){color:var(--green);font-weight:600;white-space:nowrap;}
-  .wm-cheatsheet-grid span:nth-child(even){color:var(--text-dim);}
-  .wm-cheatsheet-hint{margin-top:14px;font-size:10.5px;color:var(--text-dim);text-align:center;}
 
   @keyframes wm-pulse{0%,100%{opacity:.55;}50%{opacity:1;}}
 
@@ -423,7 +416,6 @@
     #ws-5.active{grid-template-columns:1fr;grid-template-rows:auto;}
     .ws5-terminal{grid-row:auto;}
     .topbar-path{display:none;}
-    .wm-cheatsheet-grid{grid-template-columns:1fr;}
     .wm-switcher{flex-wrap:wrap;max-width:calc(100% - 32px);}
     .wm-osd{bottom:64px;}
   }
