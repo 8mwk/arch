@@ -243,12 +243,6 @@
   window.addEventListener("keydown", (e)=>{
     if(!state.booted) return;
 
-    const lock = document.getElementById("wm-lockscreen");
-    if(lock && !lock.hidden){
-      if(e.key === "Enter") unlockScreen();
-      return;
-    }
-
     if(document.activeElement && document.activeElement.tagName === "INPUT"){
       if(e.key === "Escape") document.activeElement.blur();
       return;
@@ -280,7 +274,6 @@
         case "ArrowUp": if(focused){ e.preventDefault(); wmApplySnap(focused, "max"); } break;
         case "ArrowDown": if(focused){ e.preventDefault(); wmApplySnap(focused, "float"); } break;
         case "Tab": e.preventDefault(); wmCycleFocus(); break;
-        case "l": case "L": e.preventDefault(); lockScreen(); break;
         case "/": e.preventDefault(); toggleCheatsheet(); break;
         case "S":
           if(e.shiftKey){ e.preventDefault(); takeScreenshot(); }
@@ -305,10 +298,6 @@
     const loginDate = document.getElementById("login-date");
     if(loginTime) loginTime.textContent = `${hh}:${mm}`;
     if(loginDate) loginDate.textContent = `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
-    const lockTime = document.getElementById("lock-time");
-    const lockDate = document.getElementById("lock-date");
-    if(lockTime) lockTime.textContent = `${hh}:${mm}`;
-    if(lockDate) lockDate.textContent = `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
     const nfUp = document.getElementById("nf-uptime");
     if(nfUp) nfUp.textContent = uptimeShort();
     const valUp = document.getElementById("val-uptime");
@@ -572,20 +561,6 @@
     wmOsdTimer = setTimeout(()=>{ osd.hidden = true; }, 1400);
   }
 
-  /* ---------------- lock screen ---------------- */
-  function lockScreen(){
-    const lock = document.getElementById("wm-lockscreen");
-    if(lock) lock.hidden = false;
-  }
-  function unlockScreen(){
-    const lock = document.getElementById("wm-lockscreen");
-    if(lock && !lock.hidden){
-      lock.hidden = true;
-      notify("Unlocked", "Welcome back, dazai");
-    }
-  }
-  document.getElementById("wm-lockscreen")?.addEventListener("click", unlockScreen);
-
   /* ---------------- screenshot ---------------- */
   function takeScreenshot(){
     const flash = document.getElementById("wm-flash");
@@ -616,7 +591,6 @@
       notify("Compositor", document.body.classList.contains("wm-blur-on") ? "Blur enabled" : "Blur disabled");
     }},
     {label:"Take Screenshot", action:()=>takeScreenshot()},
-    {label:"Lock Screen", action:()=>lockScreen()},
     {sep:true},
     {label:"Keyboard Shortcuts", action:()=>toggleCheatsheet()},
     {label:"Refresh Desktop", action:()=>{ notify("Desktop", "Refreshed"); }}
@@ -807,7 +781,7 @@
       ["Window manager", [
         ["theme <name>","green/blue/purple/red/yellow/pink/cyan"], ["gaps <n>","Tile gap size 0-40"],
         ["blur on|off","Toggle window blur"], ["snap <dir>","left/right/max/float"],
-        ["windows","List open windows"], ["lock","Lock the screen"], ["screenshot","Take a screenshot"]
+        ["windows","List open windows"], ["screenshot","Take a screenshot"]
       ]],
       ["Fun", [
         ["cowsay <text>","Cow says text"], ["fortune","Random quote"], ["joke","Programmer joke"],
@@ -973,7 +947,6 @@
         printLine(list.length ? list.map(t=>`  • ${esc(t)}`).join("<br>") : "No windows open.");
         break;
       }
-      case "lock": if(api){ api.lockScreen(); printLine("Locking…"); } break;
       case "screenshot": if(api){ api.takeScreenshot(); printLine("Screenshot saved."); } break;
       case "notify": if(api){ api.notify("Terminal", arg || "Hello!"); printLine("Notification sent."); } break;
       case "matrix": if(api){ api.playMatrixRain(4000); printLine("Wake up, Neo…"); } break;
@@ -1212,7 +1185,7 @@
 
   /* ---------------- expose WM control bridge for embedded Terminal ---------------- */
   window.wmAPI = {
-    notify, lockScreen, unlockScreen, showVolumeOSD, takeScreenshot,
+    notify, showVolumeOSD, takeScreenshot,
     toggleCheatsheet, setTheme, setGaps, toggleBlurMode, setBlurMode,
     wmSnapFocused, wmListWindows, openFileWindow, wmFocus, playMatrixRain
   };

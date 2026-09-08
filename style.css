@@ -380,10 +380,6 @@
   .wm-cheatsheet-grid span:nth-child(even){color:var(--text-dim);}
   .wm-cheatsheet-hint{margin-top:14px;font-size:10.5px;color:var(--text-dim);text-align:center;}
 
-  .wm-lockscreen{position:absolute;inset:0;z-index:90;background:radial-gradient(ellipse at 50% 20%,#12261b 0%,#05070a 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;cursor:pointer;}
-  .lock-time{font-size:52px;font-weight:700;color:var(--text);letter-spacing:1px;}
-  .lock-date{text-align:center;color:var(--text-dim);font-size:13px;margin-top:4px;}
-  .lock-hint{color:var(--text-dim);font-size:12px;animation:wm-pulse 2s ease-in-out infinite;}
   @keyframes wm-pulse{0%,100%{opacity:.55;}50%{opacity:1;}}
 
   .wm-contextmenu{position:absolute;z-index:85;background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:5px;box-shadow:0 20px 50px rgba(0,0,0,.5);min-width:190px;}
@@ -429,7 +425,6 @@
     .topbar-path{display:none;}
     .wm-cheatsheet-grid{grid-template-columns:1fr;}
     .wm-switcher{flex-wrap:wrap;max-width:calc(100% - 32px);}
-    .lock-time{font-size:38px;}
     .wm-osd{bottom:64px;}
   }
   @media (prefers-reduced-motion: reduce){
