@@ -194,10 +194,22 @@
     document.querySelectorAll(".workspace").forEach(w=>w.classList.remove("active"));
     const target = document.getElementById("ws-"+n);
     if(target) target.classList.add("active");
-    document.querySelectorAll(".ws-pill").forEach(p=>p.classList.toggle("active", p.dataset.ws === String(n)));
+    document.querySelectorAll(".ws-pill").forEach(p=>{
+      const isActive = p.dataset.ws === String(n);
+      p.classList.toggle("active", isActive);
+      p.setAttribute("aria-selected", String(isActive));
+    });
   }
   document.querySelectorAll(".ws-pill").forEach(p=>p.addEventListener("click", ()=>setWorkspace(p.dataset.ws)));
   document.querySelectorAll(".dock-btn[data-ws]").forEach(b=>b.addEventListener("click", ()=>setWorkspace(b.dataset.ws)));
+  document.getElementById("ws-pills")?.addEventListener("wheel", (e)=>{
+    e.preventDefault();
+    const order = ["1","2","3","4","5"];
+    const current = document.querySelector(".workspace.active");
+    const idx = order.indexOf((current ? current.id : "ws-1").replace("ws-",""));
+    const next = e.deltaY > 0 ? Math.min(idx+1, order.length-1) : Math.max(idx-1, 0);
+    setWorkspace(order[next]);
+  }, {passive:false});
   document.getElementById("ws1-dock-terminal")?.addEventListener("click", ()=>{
     toggleFloatWin("ws1-floatwin-terminal", 3);
   });
@@ -368,6 +380,7 @@
   function wmIconOf(win){
     if(win.id === "ws1-floatwin-terminal") return ">_";
     if(win.id === "ws1-floatwin-filemanager") return "📁";
+    if(win.id === "ws1-floatwin-youtube") return "▶";
     return "📄";
   }
 
@@ -509,6 +522,121 @@
     if(win.hidden) toggleFileManager();
     wmFocus(win);
   }
+  function openYoutubeWindow(){
+    const win = document.getElementById("ws1-floatwin-youtube");
+    if(!win) return;
+    win.hidden = false;
+    wmFocus(win);
+  }
+  document.getElementById("ws1-dock-youtube")?.addEventListener("click", openYoutubeWindow);
+
+  /* ---------------- youtube app ---------------- */
+  const YT_KEY_STORAGE = "yt_api_key";
+  function ytGetApiKey(){
+    try{ return localStorage.getItem(YT_KEY_STORAGE) || ""; }catch(_){ return ""; }
+  }
+  function ytSetApiKey(key){
+    try{
+      if(key) localStorage.setItem(YT_KEY_STORAGE, key);
+      else localStorage.removeItem(YT_KEY_STORAGE);
+    }catch(_){ /* storage unavailable, ignore */ }
+  }
+  function ytExtractId(raw){
+    const s = (raw || "").trim();
+    if(/^[a-zA-Z0-9_-]{11}$/.test(s)) return s;
+    try{
+      const u = new URL(s);
+      if(u.hostname.replace(/^www\./,"") === "youtu.be") return u.pathname.slice(1,12) || null;
+      if(u.hostname.replace(/^www\./,"").includes("youtube.com")){
+        if(u.pathname === "/watch") return u.searchParams.get("v");
+        if(u.pathname.startsWith("/shorts/")) return u.pathname.split("/")[2] || null;
+        if(u.pathname.startsWith("/embed/")) return u.pathname.split("/")[2] || null;
+      }
+    }catch(_){ /* not a URL */ }
+    return null;
+  }
+  function ytPlay(videoId, title){
+    if(!videoId) return;
+    const frame = document.getElementById("yt-player-frame");
+    const empty = document.getElementById("yt-player-empty");
+    if(!frame) return;
+    frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&rel=0`;
+    frame.hidden = false;
+    if(empty) empty.hidden = true;
+    const win = document.getElementById("ws1-floatwin-youtube");
+    if(win) win.dataset.wmTitle = title ? `YouTube — ${title}` : "YouTube";
+  }
+  async function ytSearch(query){
+    const results = document.getElementById("yt-results");
+    if(!results) return;
+    const key = ytGetApiKey();
+    results.hidden = false;
+    if(!key){
+      results.innerHTML = `<div class="yt-empty-msg">Add a free YouTube Data API v3 key (⚙ above) to enable search — or paste a video URL/ID and hit Go.</div>`;
+      return;
+    }
+    results.innerHTML = `<div class="yt-empty-msg">Searching…</div>`;
+    try{
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&q=${encodeURIComponent(query)}&key=${encodeURIComponent(key)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if(data.error){
+        results.innerHTML = `<div class="yt-empty-msg">${esc(data.error.message || "Search failed — check your API key.")}</div>`;
+        return;
+      }
+      const items = data.items || [];
+      if(!items.length){
+        results.innerHTML = `<div class="yt-empty-msg">No results.</div>`;
+        return;
+      }
+      results.innerHTML = items.map(it=>{
+        const id = it.id && it.id.videoId;
+        const sn = it.snippet || {};
+        const thumb = (sn.thumbnails && (sn.thumbnails.default || sn.thumbnails.medium) || {}).url || "";
+        return `<button class="yt-result-card" data-id="${esc(id||"")}" data-title="${esc(sn.title||"")}">
+          <img class="yt-result-thumb" src="${esc(thumb)}" alt="" loading="lazy">
+          <span class="yt-result-meta">
+            <span class="yt-result-title">${esc(sn.title||"")}</span>
+            <span class="yt-result-channel">${esc(sn.channelTitle||"")}</span>
+          </span>
+        </button>`;
+      }).join("");
+      results.querySelectorAll(".yt-result-card").forEach(card=>{
+        card.addEventListener("click", ()=>ytPlay(card.dataset.id, card.dataset.title));
+      });
+    }catch(_){
+      results.innerHTML = `<div class="yt-empty-msg">Network error — check your connection or API key.</div>`;
+    }
+  }
+  function ytHandleGo(){
+    const input = document.getElementById("yt-query-input");
+    if(!input) return;
+    const val = input.value.trim();
+    if(!val) return;
+    const id = ytExtractId(val);
+    if(id) ytPlay(id, null);
+    else ytSearch(val);
+  }
+  document.getElementById("yt-go-btn")?.addEventListener("click", ytHandleGo);
+  document.getElementById("yt-query-input")?.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter"){ e.preventDefault(); ytHandleGo(); }
+  });
+  document.getElementById("yt-settings-btn")?.addEventListener("click", ()=>{
+    const panel = document.getElementById("yt-settings-panel");
+    if(!panel) return;
+    panel.hidden = !panel.hidden;
+    if(!panel.hidden){
+      const input = document.getElementById("yt-api-key-input");
+      if(input) input.value = ytGetApiKey();
+    }
+  });
+  document.getElementById("yt-api-key-save")?.addEventListener("click", ()=>{
+    const input = document.getElementById("yt-api-key-input");
+    ytSetApiKey(input ? input.value.trim() : "");
+    const panel = document.getElementById("yt-settings-panel");
+    if(panel) panel.hidden = true;
+    notify("YouTube", "API key saved");
+  });
 
   function wmCycleFocus(){
     const wins = wmOpenWindows();
@@ -768,7 +896,7 @@
       ["Window manager", [
         ["theme <name>","green/blue/purple/red/yellow/pink/cyan"], ["gaps <n>","Tile gap size 0-40"],
         ["blur on|off","Toggle window blur"], ["snap <dir>","left/right/max/float"],
-        ["windows","List open windows"], ["screenshot","Take a screenshot"]
+        ["windows","List open windows"], ["screenshot","Take a screenshot"], ["youtube <query|url>","Open YouTube app"]
       ]],
       ["Fun", [
         ["cowsay <text>","Cow says text"], ["fortune","Random quote"], ["joke","Programmer joke"],
@@ -935,6 +1063,21 @@
         break;
       }
       case "screenshot": if(api){ api.takeScreenshot(); printLine("Screenshot saved."); } break;
+      case "youtube": case "yt": {
+        if(!api){ printLine("youtube: window manager unavailable."); break; }
+        api.openYoutubeWindow();
+        if(arg){
+          printLine(`Opening YouTube — ${esc(arg)}`);
+          setTimeout(()=>{
+            const id = /^[a-zA-Z0-9_-]{11}$/.test(arg.trim()) ? arg.trim() : null;
+            if(id) api.ytPlay(id);
+            else api.ytSearch(arg);
+          }, 50);
+        } else {
+          printLine("Opening YouTube…");
+        }
+        break;
+      }
       case "notify": if(api){ api.notify("Terminal", arg || "Hello!"); printLine("Notification sent."); } break;
       case "matrix": if(api){ api.playMatrixRain(4000); printLine("Wake up, Neo…"); } break;
       case "open": {
@@ -1174,7 +1317,8 @@
   window.wmAPI = {
     notify, showVolumeOSD, takeScreenshot,
     setTheme, setGaps, toggleBlurMode, setBlurMode,
-    wmSnapFocused, wmListWindows, openFileWindow, wmFocus, playMatrixRain
+    wmSnapFocused, wmListWindows, openFileWindow, wmFocus, playMatrixRain,
+    openYoutubeWindow, ytPlay, ytSearch
   };
   window.addEventListener("message", (e)=>{
     if(e.data === "wm-close-terminal"){

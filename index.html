@@ -39,6 +39,13 @@
   <div class="topbar">
     <div class="topbar-left">
       <span class="brand">BAD APPLE</span>
+      <div class="workspaces" id="ws-pills" role="tablist" aria-label="Workspaces">
+        <button class="ws-pill active" data-ws="1" title="Home" role="tab" aria-selected="true">1</button>
+        <button class="ws-pill" data-ws="2" title="Portfolio" role="tab" aria-selected="false">2</button>
+        <button class="ws-pill" data-ws="3" title="Terminal" role="tab" aria-selected="false">3</button>
+        <button class="ws-pill" data-ws="4" title="Files" role="tab" aria-selected="false">4</button>
+        <button class="ws-pill" data-ws="5" title="Dashboard" role="tab" aria-selected="false">5</button>
+      </div>
       <span class="topbar-path">~/portfolio</span>
     </div>
     <div class="topbar-right">
@@ -133,6 +140,33 @@
           <span class="wm-resize-handle" aria-hidden="true"></span>
         </div>
 
+        <div class="window ws1-floatwin wm-window ws1-floatwin-youtube" id="ws1-floatwin-youtube" data-wm-title="YouTube" hidden>
+          <div class="window-titlebar wm-drag-handle">
+            <span class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
+            <span>YouTube</span>
+            <button class="yt-settings-btn" id="yt-settings-btn" title="API key settings" aria-label="API key settings">⚙</button>
+            <button class="ws1-floatwin-close wm-close" data-target="ws1-floatwin-youtube" aria-label="Close">✕</button>
+          </div>
+          <div class="window-body yt-body">
+            <div class="yt-settings-panel" id="yt-settings-panel" hidden>
+              <label for="yt-api-key-input">YouTube Data API v3 key</label>
+              <input type="text" id="yt-api-key-input" placeholder="Paste your API key" autocomplete="off" spellcheck="false">
+              <button id="yt-api-key-save">Save</button>
+              <div class="yt-settings-hint">Free key from console.cloud.google.com — only needed for search. Pasting a video URL or ID always plays without one.</div>
+            </div>
+            <div class="yt-topbar">
+              <input type="text" id="yt-query-input" class="yt-query-input" placeholder="Search YouTube, or paste a video URL/ID" autocomplete="off" spellcheck="false">
+              <button id="yt-go-btn" class="yt-go-btn">Go</button>
+            </div>
+            <div class="yt-player-wrap" id="yt-player-wrap">
+              <span class="yt-player-empty" id="yt-player-empty">Search or paste a link to start watching</span>
+              <iframe id="yt-player-frame" class="yt-player-frame" hidden allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="YouTube player"></iframe>
+            </div>
+            <div class="yt-results" id="yt-results" hidden></div>
+          </div>
+          <span class="wm-resize-handle" aria-hidden="true"></span>
+        </div>
+
         <div class="ws1-filewin-layer" id="ws1-filewin-layer"></div>
 
         <div class="wm-notify-layer" id="wm-notify-layer"></div>
@@ -161,6 +195,9 @@
           </button>
           <button class="dock-btn ico-square" id="ws1-dock-filemanager" title="File Manager">
             <img src="assets/filemanager.png" alt="File Manager" class="dock-icon-img" width="26" height="26">
+          </button>
+          <button class="dock-btn ico-square" id="ws1-dock-youtube" title="YouTube">
+            <img src="assets/youtube.png" alt="YouTube" class="dock-icon-img" width="26" height="26">
           </button>
         </div>
       </div>
