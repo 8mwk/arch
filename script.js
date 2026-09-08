@@ -168,13 +168,7 @@
 
   function applyHashWorkspace(){
     const m = location.hash.match(/ws=(\d)/);
-    if(m){ setWorkspace(m[1], {noPersist:true}); return; }
-    if(!document.body.classList.contains("embedded-window")){
-      try{
-        const saved = localStorage.getItem("dazai_last_ws");
-        if(saved) setWorkspace(saved);
-      }catch(e){}
-    }
+    if(m) setWorkspace(m[1]);
   }
   function getHashParam(name){
     const m = location.hash.match(new RegExp(name+"=([\\w.-]+)"));
@@ -195,32 +189,12 @@
     setTimeout(printNextKernelLine, 300);
   }
 
-  /* ---------------- workspace switching (with Hyprland-style slide transition) ---------------- */
-  const WS_TITLES = {1:"~/portfolio",2:"~/portfolio (tiled)",3:"~/portfolio/terminal",4:"~/portfolio (files)",5:"~/portfolio/dashboard"};
-  let currentWs = 1;
-  function setWorkspace(n, opts){
-    n = Number(n);
-    if(!n || n === currentWs) return;
-    opts = opts || {};
-    const dir = n > currentWs ? "right" : "left";
-    const prev = document.querySelector(".workspace.active");
+  /* ---------------- workspace switching ---------------- */
+  function setWorkspace(n){
+    document.querySelectorAll(".workspace").forEach(w=>w.classList.remove("active"));
     const target = document.getElementById("ws-"+n);
-    if(!target){ return; }
-    document.querySelectorAll(".workspace").forEach(w=>w.classList.remove("ws-exit-left","ws-exit-right","ws-enter-left","ws-enter-right"));
-    if(prev && prev !== target){
-      prev.classList.add(dir === "right" ? "ws-exit-left" : "ws-exit-right");
-      setTimeout(()=>{ prev.classList.remove("active","ws-exit-left","ws-exit-right"); }, 210);
-    }
-    target.classList.add(dir === "right" ? "ws-enter-right" : "ws-enter-left");
-    target.classList.add("active");
-    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ target.classList.remove("ws-enter-left","ws-enter-right"); }); });
+    if(target) target.classList.add("active");
     document.querySelectorAll(".ws-pill").forEach(p=>p.classList.toggle("active", p.dataset.ws === String(n)));
-    const titleEl = document.getElementById("active-window-title");
-    if(titleEl) titleEl.textContent = WS_TITLES[n] || "~/portfolio";
-    currentWs = n;
-    if(!opts.noPersist){
-      try{ localStorage.setItem("dazai_last_ws", String(n)); }catch(e){}
-    }
   }
   document.querySelectorAll(".ws-pill").forEach(p=>p.addEventListener("click", ()=>setWorkspace(p.dataset.ws)));
   document.querySelectorAll(".dock-btn[data-ws]").forEach(b=>b.addEventListener("click", ()=>setWorkspace(b.dataset.ws)));
@@ -238,6 +212,7 @@
       frame.dataset.loaded = "1";
     }
     win.hidden = false;
+    if(typeof wmFocus === "function") wmFocus(win);
   }
   function toggleFileManager(){
     const win = document.getElementById("ws1-floatwin-filemanager");
@@ -254,6 +229,7 @@
     frame.src = src;
     frame.dataset.loaded = "1";
     win.hidden = false;
+    if(typeof wmFocus === "function") wmFocus(win);
   }
   document.querySelectorAll(".ws1-floatwin-close").forEach(btn=>{
     btn.addEventListener("click", ()=>{
@@ -266,8 +242,55 @@
 
   window.addEventListener("keydown", (e)=>{
     if(!state.booted) return;
-    if(document.activeElement && document.activeElement.tagName === "INPUT") return;
+
+    const lock = document.getElementById("wm-lockscreen");
+    if(lock && !lock.hidden){
+      if(e.key === "Enter") unlockScreen();
+      return;
+    }
+
+    if(document.activeElement && document.activeElement.tagName === "INPUT"){
+      if(e.key === "Escape") document.activeElement.blur();
+      return;
+    }
+
     if(e.key >= "1" && e.key <= "5") setWorkspace(e.key);
+
+    if(e.key === "Escape"){
+      const cs = document.getElementById("wm-cheatsheet");
+      const menu = document.getElementById("wm-contextmenu");
+      if(cs && !cs.hidden) cs.hidden = true;
+      if(menu && !menu.hidden) menu.hidden = true;
+    }
+
+    if(e.altKey && !e.ctrlKey){
+      const focused = document.querySelector(".wm-window.wm-focused:not([hidden])");
+      switch(e.key){
+        case "Enter": e.preventDefault(); openTerminalWindow(); break;
+        case "e": case "E": e.preventDefault(); openFileManagerWindow(); break;
+        case "q": case "Q": if(focused){ e.preventDefault(); wmCloseWindow(focused); } break;
+        case "f": case "F":
+          if(focused){
+            e.preventDefault();
+            wmApplySnap(focused, focused.dataset.wmSnap === "max" ? "float" : "max");
+          }
+          break;
+        case "ArrowLeft": if(focused){ e.preventDefault(); wmApplySnap(focused, "left"); } break;
+        case "ArrowRight": if(focused){ e.preventDefault(); wmApplySnap(focused, "right"); } break;
+        case "ArrowUp": if(focused){ e.preventDefault(); wmApplySnap(focused, "max"); } break;
+        case "ArrowDown": if(focused){ e.preventDefault(); wmApplySnap(focused, "float"); } break;
+        case "Tab": e.preventDefault(); wmCycleFocus(); break;
+        case "l": case "L": e.preventDefault(); lockScreen(); break;
+        case "/": e.preventDefault(); toggleCheatsheet(); break;
+        case "S":
+          if(e.shiftKey){ e.preventDefault(); takeScreenshot(); }
+          break;
+      }
+    }
+    if(e.ctrlKey && e.altKey){
+      if(e.key === "ArrowUp"){ e.preventDefault(); showVolumeOSD(10); }
+      else if(e.key === "ArrowDown"){ e.preventDefault(); showVolumeOSD(-10); }
+    }
   });
 
   /* ---------------- clock + stats ---------------- */
@@ -304,6 +327,382 @@
   randomStats();
   setInterval(randomStats, 3500);
 
+  document.getElementById("stat-wifi")?.addEventListener("click", function(){
+    const off = this.classList.toggle("stat-off");
+    notify(off ? "Wi-Fi disconnected" : "Wi-Fi connected", off ? "You are now offline" : "Reconnected to portfolio-5G");
+  });
+  document.getElementById("stat-volume")?.addEventListener("click", function(){
+    wmVolume = wmVolume > 0 ? 0 : 80;
+    showVolumeOSD(0);
+    notify(wmVolume === 0 ? "Muted" : "Unmuted", `Volume ${wmVolume}%`);
+  });
+  document.getElementById("stat-battery")?.addEventListener("click", ()=>{
+    notify("Battery", "61% — 3h 40m remaining (estimated)");
+  });
+
+  /* ================= WINDOW MANAGER ================= */
+  const desktopEl = document.querySelector(".ws1-desktop");
+  let wmZ = 10;
+  let wmVolume = 80;
+  let wmPendingSnap = null;
+  let wmOsdTimer = null;
+  let wmSwitcherTimer = null;
+  let WM_GAP = 10;
+
+  function wmOpenWindows(){
+    return Array.from(document.querySelectorAll(".wm-window")).filter(w=>!w.hidden);
+  }
+  function wmFocus(win){
+    if(!win) return;
+    document.querySelectorAll(".wm-window").forEach(w=>w.classList.remove("wm-focused"));
+    win.classList.add("wm-focused");
+    win.style.zIndex = ++wmZ;
+  }
+  function wmDetach(win){
+    if(win.dataset.wmDetached) return;
+    const deskRect = desktopEl.getBoundingClientRect();
+    const rect = win.getBoundingClientRect();
+    win.style.left = (rect.left - deskRect.left) + "px";
+    win.style.top = (rect.top - deskRect.top) + "px";
+    win.style.width = rect.width + "px";
+    win.style.height = rect.height + "px";
+    win.style.transform = "none";
+    win.dataset.wmDetached = "1";
+  }
+  function wmCloseWindow(win){
+    if(!win) return;
+    if(win.classList.contains("ws1-filewin")) win.remove();
+    else win.hidden = true;
+  }
+  function wmTitleOf(win){
+    if(win.dataset.wmTitle) return win.dataset.wmTitle;
+    const span = win.querySelector(".window-titlebar span:not(.dots)");
+    return span ? span.textContent : "Window";
+  }
+  function wmIconOf(win){
+    if(win.id === "ws1-floatwin-terminal") return ">_";
+    if(win.id === "ws1-floatwin-filemanager") return "📁";
+    return "📄";
+  }
+
+  function geomForZone(zone, deskRect){
+    const g = WM_GAP;
+    switch(zone){
+      case "left": return {left:g, top:g, width:(deskRect.width/2)-g*1.5, height:deskRect.height-g*2};
+      case "right": return {left:deskRect.width/2+g/2, top:g, width:(deskRect.width/2)-g*1.5, height:deskRect.height-g*2};
+      case "max": return {left:g, top:g, width:deskRect.width-g*2, height:deskRect.height-g*2};
+      default: return null;
+    }
+  }
+  function snapGhost(){
+    let ghost = document.getElementById("wm-snap-ghost");
+    if(!ghost){
+      ghost = document.createElement("div");
+      ghost.id = "wm-snap-ghost";
+      ghost.className = "wm-snap-preview";
+      ghost.hidden = true;
+      desktopEl.appendChild(ghost);
+    }
+    return ghost;
+  }
+  function showSnapPreview(zone, deskRect){
+    const g = geomForZone(zone, deskRect);
+    if(!g) return;
+    const ghost = snapGhost();
+    ghost.style.left = g.left+"px"; ghost.style.top = g.top+"px";
+    ghost.style.width = g.width+"px"; ghost.style.height = g.height+"px";
+    ghost.hidden = false;
+  }
+  function hideSnapPreview(){
+    const ghost = document.getElementById("wm-snap-ghost");
+    if(ghost) ghost.hidden = true;
+    wmPendingSnap = null;
+  }
+  function wmApplySnap(win, zone){
+    const deskRect = desktopEl.getBoundingClientRect();
+    wmDetach(win);
+    if(zone === "float"){
+      const stored = win.dataset.wmFloatGeom;
+      if(stored){
+        const g = JSON.parse(stored);
+        win.style.left = g.left+"px"; win.style.top = g.top+"px";
+        win.style.width = g.width+"px"; win.style.height = g.height+"px";
+      }
+      win.classList.remove("wm-fullscreen");
+      win.dataset.wmSnap = "";
+      return;
+    }
+    if(!win.dataset.wmSnap){
+      win.dataset.wmFloatGeom = JSON.stringify({
+        left: parseFloat(win.style.left)||0, top: parseFloat(win.style.top)||0,
+        width: win.offsetWidth, height: win.offsetHeight
+      });
+    }
+    const g = geomForZone(zone, deskRect);
+    if(!g) return;
+    win.style.left = g.left+"px"; win.style.top = g.top+"px";
+    win.style.width = g.width+"px"; win.style.height = g.height+"px";
+    win.classList.toggle("wm-fullscreen", zone === "max");
+    win.dataset.wmSnap = zone;
+  }
+
+  function wmInit(win){
+    if(win.dataset.wmInit) return;
+    win.dataset.wmInit = "1";
+    win.addEventListener("pointerdown", ()=>wmFocus(win));
+    const handle = win.querySelector(".wm-drag-handle");
+    if(handle){
+      handle.addEventListener("pointerdown", (e)=>{
+        if(e.target.closest(".wm-close")) return;
+        e.preventDefault();
+        wmDetach(win);
+        wmFocus(win);
+        win.classList.add("wm-dragging");
+        const deskRect = desktopEl.getBoundingClientRect();
+        const rect = win.getBoundingClientRect();
+        const offX = e.clientX - rect.left, offY = e.clientY - rect.top;
+        function onMove(ev){
+          let x = ev.clientX - deskRect.left - offX;
+          let y = ev.clientY - deskRect.top - offY;
+          x = Math.max(-win.offsetWidth+60, Math.min(x, deskRect.width-60));
+          y = Math.max(0, Math.min(y, deskRect.height-40));
+          win.style.left = x+"px"; win.style.top = y+"px";
+          const px = ev.clientX-deskRect.left, py = ev.clientY-deskRect.top;
+          const margin = 46;
+          let zone = null;
+          if(px < margin) zone = "left";
+          else if(px > deskRect.width-margin) zone = "right";
+          else if(py < margin) zone = "max";
+          wmPendingSnap = zone;
+          if(zone) showSnapPreview(zone, deskRect); else hideSnapPreview();
+        }
+        function onUp(){
+          window.removeEventListener("pointermove", onMove);
+          window.removeEventListener("pointerup", onUp);
+          win.classList.remove("wm-dragging");
+          if(wmPendingSnap) wmApplySnap(win, wmPendingSnap);
+          hideSnapPreview();
+        }
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+      });
+    }
+    const resizer = win.querySelector(".wm-resize-handle");
+    if(resizer){
+      resizer.addEventListener("pointerdown", (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        wmDetach(win);
+        wmFocus(win);
+        win.classList.add("wm-resizing");
+        win.dataset.wmSnap = "";
+        const startW = win.offsetWidth, startH = win.offsetHeight;
+        const startX = e.clientX, startY = e.clientY;
+        function onMove(ev){
+          const w = Math.max(280, startW + (ev.clientX-startX));
+          const h = Math.max(200, startH + (ev.clientY-startY));
+          win.style.width = w+"px"; win.style.height = h+"px";
+        }
+        function onUp(){
+          window.removeEventListener("pointermove", onMove);
+          window.removeEventListener("pointerup", onUp);
+          win.classList.remove("wm-resizing");
+        }
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+      });
+    }
+  }
+
+  function openTerminalWindow(){
+    const win = document.getElementById("ws1-floatwin-terminal");
+    if(win.hidden) toggleFloatWin("ws1-floatwin-terminal", 3);
+    wmFocus(win);
+  }
+  function openFileManagerWindow(){
+    const win = document.getElementById("ws1-floatwin-filemanager");
+    if(win.hidden) toggleFileManager();
+    wmFocus(win);
+  }
+
+  function wmCycleFocus(){
+    const wins = wmOpenWindows();
+    if(!wins.length) return;
+    const current = document.querySelector(".wm-window.wm-focused");
+    let idx = current ? wins.indexOf(current) : -1;
+    idx = (idx+1) % wins.length;
+    wmFocus(wins[idx]);
+    const overlay = document.getElementById("wm-switcher");
+    overlay.innerHTML = wins.map(w=>
+      `<div class="wm-switcher-item ${w===wins[idx]?"active":""}"><span class="wm-switcher-icon">${wmIconOf(w)}</span>${wmTitleOf(w)}</div>`
+    ).join("");
+    overlay.hidden = false;
+    clearTimeout(wmSwitcherTimer);
+    wmSwitcherTimer = setTimeout(()=>{ overlay.hidden = true; }, 1100);
+  }
+
+  /* ---------------- notifications ---------------- */
+  let wmNotifyId = 0;
+  function notify(title, body){
+    const layer = document.getElementById("wm-notify-layer");
+    if(!layer) return;
+    const toast = document.createElement("div");
+    toast.className = "wm-toast";
+    toast.id = "wm-toast-" + (++wmNotifyId);
+    toast.innerHTML = `<div class="wm-toast-title">${esc(title)}</div><div class="wm-toast-body">${esc(body||"")}</div>`;
+    layer.appendChild(toast);
+    setTimeout(()=>{
+      toast.classList.add("wm-toast-out");
+      setTimeout(()=>toast.remove(), 260);
+    }, 3200);
+  }
+
+  /* ---------------- volume OSD ---------------- */
+  function showVolumeOSD(delta){
+    wmVolume = Math.max(0, Math.min(100, wmVolume + delta));
+    const osd = document.getElementById("wm-osd");
+    const fill = document.getElementById("wm-osd-fill");
+    const val = document.getElementById("wm-osd-val");
+    const icon = document.getElementById("wm-osd-icon");
+    if(!osd) return;
+    fill.style.width = wmVolume + "%";
+    val.textContent = wmVolume + "%";
+    icon.textContent = wmVolume === 0 ? "🔇" : wmVolume < 50 ? "🔉" : "🔊";
+    osd.hidden = false;
+    clearTimeout(wmOsdTimer);
+    wmOsdTimer = setTimeout(()=>{ osd.hidden = true; }, 1400);
+  }
+
+  /* ---------------- lock screen ---------------- */
+  function lockScreen(){
+    const lock = document.getElementById("wm-lockscreen");
+    if(lock) lock.hidden = false;
+  }
+  function unlockScreen(){
+    const lock = document.getElementById("wm-lockscreen");
+    if(lock && !lock.hidden){
+      lock.hidden = true;
+      notify("Unlocked", "Welcome back, dazai");
+    }
+  }
+  document.getElementById("wm-lockscreen")?.addEventListener("click", unlockScreen);
+
+  /* ---------------- screenshot ---------------- */
+  function takeScreenshot(){
+    const flash = document.getElementById("wm-flash");
+    if(flash){
+      flash.classList.remove("wm-flash-active");
+      void flash.offsetWidth;
+      flash.classList.add("wm-flash-active");
+    }
+    notify("Screenshot captured", "Saved to ~/Pictures/Screenshots");
+  }
+
+  /* ---------------- cheatsheet ---------------- */
+  function toggleCheatsheet(){
+    const cs = document.getElementById("wm-cheatsheet");
+    if(cs) cs.hidden = !cs.hidden;
+  }
+  document.getElementById("wm-cheatsheet")?.addEventListener("click", (e)=>{
+    if(e.target.id === "wm-cheatsheet") toggleCheatsheet();
+  });
+
+  /* ---------------- right-click context menu ---------------- */
+  const contextMenuItems = [
+    {label:"New Terminal", action:()=>openTerminalWindow()},
+    {label:"New File Manager", action:()=>openFileManagerWindow()},
+    {sep:true},
+    {label:"Toggle Blur", action:()=>{
+      document.body.classList.toggle("wm-blur-on");
+      notify("Compositor", document.body.classList.contains("wm-blur-on") ? "Blur enabled" : "Blur disabled");
+    }},
+    {label:"Take Screenshot", action:()=>takeScreenshot()},
+    {label:"Lock Screen", action:()=>lockScreen()},
+    {sep:true},
+    {label:"Keyboard Shortcuts", action:()=>toggleCheatsheet()},
+    {label:"Refresh Desktop", action:()=>{ notify("Desktop", "Refreshed"); }}
+  ];
+  function showContextMenu(x, y){
+    const menu = document.getElementById("wm-contextmenu");
+    if(!menu) return;
+    menu.innerHTML = contextMenuItems.map(it=>
+      it.sep ? `<div class="wm-contextmenu-sep"></div>` : `<button class="wm-contextmenu-item" data-idx="${contextMenuItems.indexOf(it)}">${it.label}</button>`
+    ).join("");
+    const deskRect = desktopEl.getBoundingClientRect();
+    menu.style.left = Math.min(x - deskRect.left, deskRect.width-200) + "px";
+    menu.style.top = Math.min(y - deskRect.top, deskRect.height-260) + "px";
+    menu.hidden = false;
+    menu.querySelectorAll(".wm-contextmenu-item").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const item = contextMenuItems[+btn.dataset.idx];
+        if(item && item.action) item.action();
+        menu.hidden = true;
+      });
+    });
+  }
+  desktopEl?.addEventListener("contextmenu", (e)=>{
+    if(e.target.closest(".wm-window") || e.target.closest(".ws1-dock") || e.target.closest(".ws1-icon")) return;
+    e.preventDefault();
+    showContextMenu(e.clientX, e.clientY);
+  });
+  document.addEventListener("click", (e)=>{
+    const menu = document.getElementById("wm-contextmenu");
+    if(menu && !menu.hidden && !menu.contains(e.target)) menu.hidden = true;
+  });
+
+  /* ---------------- terminal-facing WM controls ---------------- */
+  const WM_THEMES = { green:"#5ad68c", blue:"#5ab8d6", purple:"#b892f5", red:"#f5716e", yellow:"#f0d264", pink:"#f792c9", cyan:"#6fe3d6" };
+  function setTheme(name){
+    const c = WM_THEMES[name];
+    if(!c) return false;
+    document.documentElement.style.setProperty("--green", c);
+    return true;
+  }
+  function setGaps(n){
+    n = Math.max(0, Math.min(40, Math.round(n)));
+    WM_GAP = n;
+    return n;
+  }
+  function setBlurMode(on){ document.body.classList.toggle("wm-blur-on", !!on); return on; }
+  function toggleBlurMode(){ return document.body.classList.toggle("wm-blur-on"); }
+  function wmSnapFocused(dir){
+    const focused = document.querySelector(".wm-window.wm-focused:not([hidden])");
+    if(!focused) return false;
+    wmApplySnap(focused, dir);
+    return true;
+  }
+  function wmListWindows(){ return wmOpenWindows().map(wmTitleOf); }
+  function playMatrixRain(ms){
+    let canvas = document.getElementById("wm-matrix-canvas");
+    if(!canvas){
+      canvas = document.createElement("canvas");
+      canvas.id = "wm-matrix-canvas";
+      canvas.className = "wm-matrix-canvas";
+      desktopEl.appendChild(canvas);
+    }
+    const rect = desktopEl.getBoundingClientRect();
+    canvas.width = rect.width; canvas.height = rect.height;
+    canvas.hidden = false;
+    const ctx = canvas.getContext("2d");
+    const cols = Math.floor(canvas.width / 14);
+    const drops = new Array(cols).fill(0);
+    const chars = "アイウエオカキクケコ0123456789ABCDEF";
+    const timer = setInterval(()=>{
+      ctx.fillStyle = "rgba(0,0,0,.08)";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle = "#5ad68c";
+      ctx.font = "13px monospace";
+      drops.forEach((y,i)=>{
+        const ch = chars[Math.floor(Math.random()*chars.length)];
+        ctx.fillText(ch, i*14, y*14);
+        drops[i] = (y*14 > canvas.height && Math.random() > .975) ? 0 : y+1;
+      });
+    }, 45);
+    setTimeout(()=>{ clearInterval(timer); canvas.hidden = true; }, ms || 4000);
+  }
+
+  /* ---------------- register existing WM windows ---------------- */
+  document.querySelectorAll(".wm-window").forEach(wmInit);
+
   /* ---------------- workspace 1: desktop icons + widgets ---------------- */
   const FILE_META = {
     about: "about.py",
@@ -314,33 +713,35 @@
     certificates: "certificates.yml",
     readme: "README.md"
   };
-  let fileWinZ = 10;
   function openFileWindow(key){
     const layer = document.getElementById("ws1-filewin-layer");
     if(!layer) return;
     let win = document.getElementById("ws1-filewin-" + key);
     if(win){
-      win.style.zIndex = ++fileWinZ;
+      wmFocus(win);
       return;
     }
     const openCount = layer.querySelectorAll(".ws1-filewin").length;
     const offset = (openCount % 5) * 22;
     win = document.createElement("div");
-    win.className = "window ws1-filewin";
+    win.className = "window ws1-filewin wm-window";
     win.id = "ws1-filewin-" + key;
+    win.dataset.wmTitle = FILE_META[key] || key;
     win.style.top = `calc(16% + ${offset}px)`;
     win.style.left = `calc(50% - 210px + ${offset}px)`;
-    win.style.zIndex = ++fileWinZ;
+    win.style.zIndex = ++wmZ;
     win.innerHTML = `
-      <div class="window-titlebar">
+      <div class="window-titlebar wm-drag-handle">
         <span class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
         <span>${FILE_META[key] || key}</span>
-        <button class="ws1-filewin-close" aria-label="Close">✕</button>
+        <button class="ws1-filewin-close wm-close" aria-label="Close">✕</button>
       </div>
-      <div class="window-body">${contentHTML(key)}</div>`;
-    win.addEventListener("mousedown", ()=>{ win.style.zIndex = ++fileWinZ; });
+      <div class="window-body">${contentHTML(key)}</div>
+      <span class="wm-resize-handle" aria-hidden="true"></span>`;
     win.querySelector(".ws1-filewin-close").addEventListener("click", ()=>{ win.remove(); });
     layer.appendChild(win);
+    wmInit(win);
+    wmFocus(win);
   }
   document.querySelectorAll(".ws1-icon[data-key]").forEach(el=>{
     el.addEventListener("click", ()=>openFileWindow(el.dataset.key));
@@ -391,14 +792,43 @@
     ws3Log.scrollTop = ws3Log.scrollHeight;
   }
   function helpText(){
-    return [
-      ["about","About me"], ["skills","My skills"], ["projects","My projects"],
-      ["experience","Experience"], ["contact","Contact me"], ["socials","Social links"],
-      ["neofetch","System info"], ["ls","List sections"], ["clear","Clear screen"],
-      ["wallpaper <url>","Set desktop wallpaper"], ["theme <name>","mocha/latte/frappe/macchiato"],
-      ["lock","Lock the session"], ["hyprctl","Monitor & layout info"], ["pactl","Audio status"],
-      ["achievements","List unlocked achievements"]
-    ].map(([c,d])=>`  <span class="nf-label">${c}</span>${" ".repeat(Math.max(1,16-c.length))}- ${d}`).join("<br>");
+    const groups = [
+      ["Portfolio", [
+        ["about","About me"], ["skills","My skills"], ["projects","My projects"],
+        ["experience","Experience"], ["contact","Contact me"], ["socials","Social links"],
+        ["open <file>","Open a desktop file"], ["ls","List sections"], ["neofetch","System info"]
+      ]],
+      ["System", [
+        ["pwd","Print working dir"], ["hostname","Show hostname"], ["uname -a","Kernel info"],
+        ["whoami","Current user"], ["date","Current date"], ["cal","Calendar"],
+        ["uptime","Session uptime"], ["history","Command history"], ["htop","Process monitor"],
+        ["ps","Process list"], ["df -h","Disk usage"], ["free -h","Memory usage"]
+      ]],
+      ["Window manager", [
+        ["theme <name>","green/blue/purple/red/yellow/pink/cyan"], ["gaps <n>","Tile gap size 0-40"],
+        ["blur on|off","Toggle window blur"], ["snap <dir>","left/right/max/float"],
+        ["windows","List open windows"], ["lock","Lock the screen"], ["screenshot","Take a screenshot"]
+      ]],
+      ["Fun", [
+        ["cowsay <text>","Cow says text"], ["fortune","Random quote"], ["joke","Programmer joke"],
+        ["banner <text>","ASCII banner"], ["matrix","Enter the matrix"], ["sl","Steam locomotive"],
+        ["weather <city>","Local forecast"], ["hyprctl","Compositor status"]
+      ]],
+      ["Utilities", [
+        ["calc <expr>","Calculator"], ["base64 <text>","Encode base64"], ["unbase64 <text>","Decode base64"],
+        ["rot13 <text>","ROT13 cipher"], ["reverse <text>","Reverse text"], ["upper/lower <text>","Change case"],
+        ["wc <text>","Word/char count"], ["echo <text>","Print text"]
+      ]],
+      ["Misc", [
+        ["wallpaper <url>","Set desktop wallpaper"], ["notify <text>","Send a notification"],
+        ["credits","About this build"], ["version","Site version"], ["man <cmd>","Manual for a command"],
+        ["clear","Clear screen"], ["exit","Close this window"]
+      ]]
+    ];
+    return groups.map(([title,cmds])=>
+      `<div class="nf-label" style="margin-top:6px">${title}</div>` +
+      cmds.map(([c,d])=>`  <span class="nf-label">${c}</span>${" ".repeat(Math.max(1,16-c.length))}- ${d}`).join("<br>")
+    ).join("<br>");
   }
   const WALLPAPER_KEY = "dazai_wallpaper_url";
   function setWallpaper(url){
@@ -419,13 +849,43 @@
       if(saved) setWallpaper(saved);
     }catch(e){ /* localStorage unavailable, ignore */ }
   })();
+  function wmBridge(){
+    try{
+      if(window.parent && window.parent !== window && window.parent.wmAPI) return window.parent.wmAPI;
+    }catch(e){ /* cross-origin or unavailable */ }
+    return window.wmAPI || null;
+  }
+  const cmdHistory = [];
+  let historyIdx = -1;
+
+  const FORTUNES = [
+    "The best code is no code at all.",
+    "There are only two hard things in CS: cache invalidation and naming things.",
+    "It works on my machine.",
+    "Weeks of coding can save you hours of planning.",
+    "A bug in production is worth two in staging.",
+    "First, solve the problem. Then, write the code.",
+    "Simplicity is the soul of efficiency."
+  ];
+  const JOKES = [
+    "Why do programmers prefer dark mode? Because light attracts bugs.",
+    "There are 10 types of people: those who understand binary, and those who don't.",
+    "I would tell you a UDP joke, but you might not get it.",
+    "A SQL query walks into a bar, walks up to two tables and asks: 'Can I join you?'",
+    "Why did the developer go broke? Because he used up all his cache.",
+    "!false — it's funny because it's true."
+  ];
+
   function runCommand(raw){
     const cmd = raw.trim();
     printLine(`<span class="ws3-prompt">dazai@portfolio:~$</span> ${esc(cmd)}`);
+    if(cmd){ cmdHistory.push(cmd); historyIdx = cmdHistory.length; }
     const base = cmd.split(" ")[0].toLowerCase();
+    const arg = cmd.slice(base.length).trim();
+    const api = wmBridge();
     switch(base){
       case "": break;
-      case "help": printLine("Available commands:<br>" + helpText()); break;
+      case "help": case "commands": printLine("Available commands:<br>" + helpText()); break;
       case "about": printLine(contentHTML("about")); break;
       case "skills": printLine(contentHTML("skills")); break;
       case "projects": printLine(contentHTML("projects")); break;
@@ -433,32 +893,183 @@
       case "contact": case "socials": printLine(contentHTML("contact")); break;
       case "neofetch": printLine(neofetchHTML()); break;
       case "whoami": printLine("dazai"); break;
-      case "ls": printLine("about  projects  skills  experience  contact  README.md"); break;
-      case "clear": ws3Log.innerHTML = ""; break;
+      case "ls": printLine("about.py  projects.json  skills.js  experience.ts  contact.jsx  certificates.yml  README.md"); break;
+      case "clear": case "cls": ws3Log.innerHTML = ""; break;
       case "sudo": printLine("Nice try. This incident will be reported to /dev/null."); break;
       case "date": printLine(new Date().toString()); break;
+      case "pwd": printLine("/home/dazai/portfolio"); break;
+      case "hostname": printLine("portfolio"); break;
+      case "uname": printLine(arg.includes("-a") ? "Linux portfolio 6.8.9-arch1-1 x86_64 GNU/Linux" : "Linux"); break;
+      case "uptime": printLine(`up ${uptimeShort()}, 1 user, load average: 0.31, 0.22, 0.18`); break;
+      case "history": printLine(cmdHistory.map((c,i)=>`  ${i+1}  ${esc(c)}`).join("<br>") || "(empty)"); break;
+      case "alias": printLine("ll='ls -la'<br>gs='git status'<br>..='cd ..'"); break;
+      case "cal": printLine(calendarHTML()); break;
+      case "echo": printLine(esc(arg)); break;
+      case "cowsay": printLine(cowsayHTML(arg || "moo")); break;
+      case "fortune": printLine(FORTUNES[Math.floor(Math.random()*FORTUNES.length)]); break;
+      case "joke": printLine(JOKES[Math.floor(Math.random()*JOKES.length)]); break;
+      case "banner": printLine(bannerHTML(arg || "dazai")); break;
+      case "sl": printLine(`    ====        ________                ___________<br> _D _|  |_______/        \\__I_I_____===__|_________|<br>  |(_)---  |   H\\________/ |   |        =|___ ___|<br>  /     |  |   H  |  |     |   |         ||_| |_||<br> |      |  |   H  |__--------------------| [___] |<br> | ________|___H__/__|_____/[][]~\\_______|       |<br> |/ |   |-----------I_____I [][] []  D   |=======|__`); break;
+      case "htop": printLine(htopHTML()); break;
+      case "ps": printLine("  PID TTY          TIME CMD<br> 1024 pts/0    00:00:01 zsh<br> 2048 pts/0    00:00:00 node<br> 3072 pts/0    00:00:00 ps"); break;
+      case "df": printLine("Filesystem      Size  Used Avail Use% Mounted on<br>/dev/sda1        50G   32G   18G  64% /<br>tmpfs           3.9G     0  3.9G   0% /tmp"); break;
+      case "free": printLine(`              total        used        free<br>Mem:           7.8G        2.4G        5.4G<br>Swap:          2.0G        0.0G        2.0G`); break;
+      case "ping": {
+        if(!arg){ printLine("Usage: ping &lt;host&gt;"); break; }
+        const host = esc(arg);
+        for(let i=0;i<4;i++){ printLine(`64 bytes from ${host}: icmp_seq=${i+1} ttl=57 time=${(8+Math.random()*30).toFixed(1)} ms`); }
+        printLine(`--- ${host} ping statistics ---<br>4 packets transmitted, 4 received, 0% packet loss`);
+        break;
+      }
+      case "curl": printLine(arg ? `curl: (6) Could not resolve host: ${esc(arg)}` : "Usage: curl &lt;url&gt;"); break;
+      case "rm":
+        if(/-rf\s+\/(\s|$)/.test(cmd) || arg === "/"){ printLine("Nice try. This filesystem is read-only (and this is a portfolio, not your root partition)."); }
+        else { printLine("rm: this filesystem is read-only."); }
+        break;
+      case "touch": case "mkdir": case "cp": case "mv":
+        printLine(`${base}: this filesystem is read-only.`); break;
+      case "exit":
+        if(api && api !== window.wmAPI){ printLine("Closing session…"); setTimeout(()=>{ try{ window.parent.postMessage("wm-close-terminal","*"); }catch(e){} }, 300); }
+        else printLine("Cannot exit login session.");
+        break;
+      case "reboot":
+        printLine("Restarting system…");
+        setTimeout(()=>printLine("[  OK  ] Stopped target Graphical Interface."), 300);
+        setTimeout(()=>printLine("[  OK  ] Reached target Reboot."), 700);
+        setTimeout(()=>printLine("System going down for reboot NOW. (This is a portfolio — nothing actually happened.)"), 1100);
+        break;
+      case "shutdown":
+        printLine("System going down for shutdown NOW.");
+        setTimeout(()=>printLine("(Relax — this is just a portfolio. Nothing was harmed.)"), 500);
+        break;
+      case "theme": {
+        if(api && api.setTheme(arg)) printLine(`Theme accent set to ${esc(arg)}.`);
+        else printLine("Usage: theme &lt;green|blue|purple|red|yellow|pink|cyan&gt;");
+        break;
+      }
+      case "gaps": {
+        const n = parseInt(arg,10);
+        if(api && !isNaN(n)) printLine(`Gap size set to ${api.setGaps(n)}px.`);
+        else printLine("Usage: gaps &lt;0-40&gt;");
+        break;
+      }
+      case "blur": {
+        if(!api){ printLine("blur: window manager unavailable."); break; }
+        if(arg === "on") { api.setBlurMode(true); printLine("Blur enabled."); }
+        else if(arg === "off") { api.setBlurMode(false); printLine("Blur disabled."); }
+        else { printLine(api.toggleBlurMode() ? "Blur enabled." : "Blur disabled."); }
+        break;
+      }
+      case "snap": {
+        const dir = arg.toLowerCase();
+        if(api && ["left","right","max","float"].includes(dir)){
+          printLine(api.wmSnapFocused(dir) ? `Snapped to ${dir}.` : "No focused window to snap.");
+        } else printLine("Usage: snap &lt;left|right|max|float&gt;");
+        break;
+      }
+      case "windows": case "wmctrl": {
+        if(!api){ printLine("windows: window manager unavailable."); break; }
+        const list = api.wmListWindows();
+        printLine(list.length ? list.map(t=>`  • ${esc(t)}`).join("<br>") : "No windows open.");
+        break;
+      }
+      case "lock": if(api){ api.lockScreen(); printLine("Locking…"); } break;
+      case "screenshot": if(api){ api.takeScreenshot(); printLine("Screenshot saved."); } break;
+      case "notify": if(api){ api.notify("Terminal", arg || "Hello!"); printLine("Notification sent."); } break;
+      case "matrix": if(api){ api.playMatrixRain(4000); printLine("Wake up, Neo…"); } break;
+      case "open": {
+        const keys = ["about","projects","skills","experience","contact","certificates","readme"];
+        const key = keys.find(k=>k===arg.toLowerCase());
+        if(api && key){ api.openFileWindow(key); printLine(`Opening ${esc(arg)}…`); }
+        else printLine(`open: unknown file '${esc(arg)}'. Try: ${keys.join(", ")}`);
+        break;
+      }
+      case "hyprctl": printLine(`monitor: DP-1 (1920x1080@60Hz)<br>active workspace: 1<br>windows: ${api ? api.wmListWindows().length : 0}<br>compositor: Hyprland 0.42.0`); break;
+      case "calc": {
+        try{
+          if(!/^[0-9+\-*/().\s]+$/.test(arg)) throw new Error("bad expr");
+          // eslint-disable-next-line no-new-func
+          const result = Function(`"use strict";return (${arg})`)();
+          printLine(`${esc(arg)} = ${result}`);
+        }catch(e){ printLine("calc: invalid expression"); }
+        break;
+      }
+      case "base64": printLine(arg ? btoa(arg) : "Usage: base64 &lt;text&gt;"); break;
+      case "unbase64": try{ printLine(atob(arg)); }catch(e){ printLine("unbase64: invalid input"); } break;
+      case "rot13": printLine(esc(rot13(arg))); break;
+      case "reverse": printLine(esc([...arg].reverse().join(""))); break;
+      case "upper": printLine(esc(arg.toUpperCase())); break;
+      case "lower": printLine(esc(arg.toLowerCase())); break;
+      case "wc": printLine(`${arg.split(/\s+/).filter(Boolean).length} words, ${arg.length} chars`); break;
+      case "yes": {
+        const word = arg || "y";
+        printLine(new Array(15).fill(esc(word)).join("<br>") + "<br>… (truncated)");
+        break;
+      }
+      case "credits": printLine("Built by dazai — HTML, CSS &amp; vanilla JS. No frameworks were harmed."); break;
+      case "version": printLine("BAD APPLE Portfolio OS — v2.0 'Hyprland Edition'"); break;
+      case "man": printLine(arg ? `No manual entry for ${esc(arg)}. Try 'help' instead.` : "What manual page do you want?"); break;
+      case "weather": {
+        if(!arg){ printLine("Usage: weather &lt;city&gt;"); break; }
+        let h=0; for(const c of arg) h = (h*31 + c.charCodeAt(0)) % 997;
+        const conditions = ["Clear","Cloudy","Rainy","Windy","Partly cloudy","Foggy"];
+        printLine(`${esc(arg)}: ${conditions[h%conditions.length]}, ${10+h%22}°C, humidity ${30+h%50}%`);
+        break;
+      }
       case "wallpaper": {
-        const arg = cmd.slice(base.length).trim();
-        if(!arg || arg === "reset" || arg === "clear" || arg === "default"){
+        const wpArg = arg;
+        if(!wpArg || wpArg === "reset" || wpArg === "clear" || wpArg === "default"){
           resetWallpaper();
           try{ localStorage.removeItem(WALLPAPER_KEY); }catch(e){}
-          printLine(arg ? "Wallpaper reset to default." : "Usage: wallpaper &lt;url&gt;  (or 'wallpaper reset')");
-        } else if(!/^https?:\/\/.+\..+/i.test(arg)){
-          printLine(`wallpaper: not a valid url: ${esc(arg)}`);
+          printLine(wpArg ? "Wallpaper reset to default." : "Usage: wallpaper &lt;url&gt;  (or 'wallpaper reset')");
+        } else if(!/^https?:\/\/.+\..+/i.test(wpArg)){
+          printLine(`wallpaper: not a valid url: ${esc(wpArg)}`);
         } else {
           const img = new Image();
           img.onload = ()=>{
-            setWallpaper(arg);
-            try{ localStorage.setItem(WALLPAPER_KEY, arg); }catch(e){}
+            setWallpaper(wpArg);
+            try{ localStorage.setItem(WALLPAPER_KEY, wpArg); }catch(e){}
             printLine("Wallpaper updated. (Switch to the Home workspace to see it.)");
           };
-          img.onerror = ()=>{ printLine(`wallpaper: couldn't load image from ${esc(arg)}`); };
-          img.src = arg;
+          img.onerror = ()=>{ printLine(`wallpaper: couldn't load image from ${esc(wpArg)}`); };
+          img.src = wpArg;
         }
         break;
       }
       default: printLine(`zsh: command not found: ${esc(base)}`);
     }
+  }
+  function rot13(s){
+    return s.replace(/[a-zA-Z]/g, (c)=>{
+      const base = c <= "Z" ? 65 : 97;
+      return String.fromCharCode(((c.charCodeAt(0) - base + 13) % 26) + base);
+    });
+  }
+  function calendarHTML(){
+    const d = new Date();
+    const y = d.getFullYear(), m = d.getMonth();
+    const first = new Date(y,m,1).getDay();
+    const days = new Date(y,m+1,0).getDate();
+    const monthName = MONTHS[m];
+    let out = `<span class="nf-label">${monthName} ${y}</span><br>Su Mo Tu We Th Fr Sa<br>` + "   ".repeat(first);
+    for(let i=1;i<=days;i++){
+      out += (i===d.getDate() ? `<span style="background:var(--green);color:#05070a">${String(i).padStart(2)}</span>` : String(i).padStart(2)) + " ";
+      if((i+first) % 7 === 0) out += "<br>";
+    }
+    return out;
+  }
+  function cowsayHTML(text){
+    const line = esc(text);
+    const bar = "-".repeat(Math.min(line.length+2, 40));
+    return ` ${bar}<br>&lt; ${line} &gt;<br> ${bar}<br>        \\   ^__^<br>         \\  (oo)\\_______<br>            (__)\\       )\\/\\<br>                ||----w |<br>                ||     ||`;
+  }
+  function bannerHTML(text){
+    const line = esc(text.toUpperCase());
+    const bar = "#".repeat(line.length + 4);
+    return `${bar}<br># ${line} #<br>${bar}`;
+  }
+  function htopHTML(){
+    return `PID   USER   CPU%  MEM%  COMMAND<br>1024  dazai  ${(2+Math.random()*8).toFixed(1)}   3.2   node index.js<br>2048  dazai  ${(1+Math.random()*4).toFixed(1)}   1.1   zsh<br>3072  dazai  0.3   0.4   htop`;
   }
   printLine(`<span style="color:var(--green);font-weight:700">Welcome to Dazai's Portfolio</span>`);
   printLine(`Type 'help' to see available commands`);
@@ -466,6 +1077,18 @@
   ws3Input.addEventListener("keydown", (e)=>{
     if(e.key === "Enter"){
       const v = ws3Input.value; ws3Input.value = ""; runCommand(v);
+    } else if(e.key === "ArrowUp"){
+      if(cmdHistory.length){
+        historyIdx = Math.max(0, historyIdx-1);
+        ws3Input.value = cmdHistory[historyIdx] || "";
+        e.preventDefault();
+      }
+    } else if(e.key === "ArrowDown"){
+      if(cmdHistory.length){
+        historyIdx = Math.min(cmdHistory.length, historyIdx+1);
+        ws3Input.value = cmdHistory[historyIdx] || "";
+        e.preventDefault();
+      }
     }
   });
   document.getElementById("ws-3").addEventListener("click", ()=>ws3Input.focus());
@@ -587,516 +1210,16 @@
   /* ---------------- workspace 5: recent projects ---------------- */
   document.getElementById("ws5-projlist").innerHTML = CONTENT.projects.slice(0,5).map(p=>`<li>${p.name}</li>`).join("");
 
-  /* ================================================================
-     HYPRLAND EXTENSIONS
-     Notifications · OSD · Quick Settings · Launcher · Overview ·
-     Lock screen · Screensaver · Keybinds · Window drag/resize/max ·
-     Themes · DND · Achievements · Easter eggs
-     ================================================================ */
-
-  /* ---------- helpers ---------- */
-  function prefGet(key, fallback){ try{ const v = localStorage.getItem(key); return v === null ? fallback : v; }catch(e){ return fallback; } }
-  function prefSet(key, val){ try{ localStorage.setItem(key, val); }catch(e){} }
-
-  /* ---------- notifications (dunst-style) ---------- */
-  const notifStack = document.getElementById("notif-stack");
-  function showNotification(title, body, ms){
-    if(!notifStack) return;
-    if(document.body.classList.contains("dnd-on")) return;
-    ms = ms || 4200;
-    const el = document.createElement("div");
-    el.className = "notif";
-    el.innerHTML = `<button class="notif-close">✕</button><div class="notif-head">🔔 ${esc(title)}</div><div class="notif-body">${esc(body||"")}</div><div class="notif-bar" style="animation-duration:${ms}ms"></div>`;
-    notifStack.appendChild(el);
-    const kill = ()=>{ el.classList.add("notif-out"); setTimeout(()=>el.remove(), 220); };
-    el.querySelector(".notif-close").addEventListener("click", kill);
-    setTimeout(kill, ms);
-  }
-  window.showNotification = showNotification;
-
-  /* ---------- copy-to-clipboard toasts on contact links ---------- */
-  function toast(msg){
-    const el = document.createElement("div");
-    el.className = "copy-toast";
-    el.textContent = msg;
-    document.body.appendChild(el);
-    setTimeout(()=>el.remove(), 1650);
-  }
-  document.addEventListener("click", (e)=>{
-    const link = e.target.closest && e.target.closest('.window-body a[href^="http"], .ws4-preview a[href^="http"]');
-    if(link && e.altKey){
-      e.preventDefault();
-      navigator.clipboard?.writeText(link.href).then(()=>toast("Copied: "+link.href)).catch(()=>{});
-    }
-  });
-
-  /* ---------- DND ---------- */
-  const dndIndicator = document.getElementById("dnd-indicator");
-  function setDnd(on){
-    document.body.classList.toggle("dnd-on", on);
-    if(dndIndicator) dndIndicator.hidden = !on;
-    prefSet("dazai_dnd", on ? "1" : "0");
-    document.querySelectorAll('.qs-toggle[data-toggle="dnd"]').forEach(b=>b.classList.toggle("on", on));
-  }
-  setDnd(prefGet("dazai_dnd","0") === "1");
-
-  /* ---------- theming ---------- */
-  const THEMES = [
-    {id:"mocha", name:"Mocha", swatch:"#7ee787"},
-    {id:"latte", name:"Latte", swatch:"#40a02b"},
-    {id:"frappe", name:"Frappé", swatch:"#a6d189"},
-    {id:"macchiato", name:"Macchiato", swatch:"#a6da95"}
-  ];
-  function applyTheme(id){
-    THEMES.forEach(t=>document.body.classList.remove("theme-"+t.id));
-    if(id !== "mocha") document.body.classList.add("theme-"+id);
-    prefSet("dazai_theme", id);
-    document.querySelectorAll(".qs-theme-dot").forEach(d=>d.classList.toggle("active", d.dataset.theme === id));
-  }
-  const qsThemes = document.getElementById("qs-themes");
-  if(qsThemes){
-    qsThemes.innerHTML = THEMES.map(t=>`<span class="qs-theme-dot" data-theme="${t.id}" style="background:${t.swatch}" title="${t.name}"></span>`).join("");
-    qsThemes.querySelectorAll(".qs-theme-dot").forEach(d=>d.addEventListener("click", ()=>applyTheme(d.dataset.theme)));
-  }
-  applyTheme(prefGet("dazai_theme","mocha"));
-
-  /* ---------- quick settings panel ---------- */
-  const qsPanel = document.getElementById("quicksettings-panel");
-  function toggleQS(force){
-    if(!qsPanel) return;
-    qsPanel.hidden = typeof force === "boolean" ? !force : !qsPanel.hidden;
-  }
-  document.getElementById("tray-volume")?.addEventListener("click", ()=>toggleQS());
-  document.getElementById("tray-wifi")?.addEventListener("click", ()=>toggleQS());
-  document.getElementById("tray-bluetooth")?.addEventListener("click", ()=>toggleQS());
-  document.getElementById("tray-battery")?.addEventListener("click", ()=>toggleQS());
-  document.getElementById("btn-clock")?.addEventListener("click", ()=>toggleQS());
-  document.addEventListener("click", (e)=>{
-    if(qsPanel && !qsPanel.hidden && !qsPanel.contains(e.target) && !e.target.closest(".tray-btn")){
-      qsPanel.hidden = true;
-    }
-  });
-  ["wifi","bluetooth","dnd","nightlight"].forEach(key=>{
-    const btn = qsPanel?.querySelector(`.qs-toggle[data-toggle="${key}"]`);
-    if(!btn) return;
-    const stored = prefGet("dazai_qs_"+key, key==="wifi"||key==="bluetooth" ? "1" : "0");
-    const on = stored === "1";
-    if(key === "dnd"){ /* handled by setDnd */ }
-    else btn.classList.toggle("on", on);
-    if(key === "nightlight") document.body.classList.toggle("nightlight-on", on);
-    btn.addEventListener("click", ()=>{
-      if(key === "dnd"){
-        setDnd(!document.body.classList.contains("dnd-on"));
-        showNotification("Do Not Disturb", document.body.classList.contains("dnd-on") ? "Notifications silenced." : "Notifications resumed.");
-        return;
-      }
-      const nowOn = !btn.classList.contains("on");
-      btn.classList.toggle("on", nowOn);
-      prefSet("dazai_qs_"+key, nowOn ? "1" : "0");
-      if(key === "nightlight") document.body.classList.toggle("nightlight-on", nowOn);
-      if(key === "wifi") showNotification("Network", nowOn ? "Wi-Fi enabled." : "Wi-Fi disabled.");
-      if(key === "bluetooth") showNotification("Bluetooth", nowOn ? "Bluetooth enabled." : "Bluetooth disabled.");
-    });
-  });
-  document.getElementById("qs-lock-btn")?.addEventListener("click", ()=>{ toggleQS(false); lockSession(); });
-
-  /* ---------- OSD (volume / brightness) ---------- */
-  let volumeLevel = Number(prefGet("dazai_volume", "70"));
-  let brightnessLevel = Number(prefGet("dazai_brightness", "100"));
-  let mutedState = prefGet("dazai_muted","0") === "1";
-  const qsVolume = document.getElementById("qs-volume"), qsVolumeVal = document.getElementById("qs-volume-val");
-  const qsBrightness = document.getElementById("qs-brightness"), qsBrightnessVal = document.getElementById("qs-brightness-val");
-  function applyVolume(v, showOsd){
-    volumeLevel = Math.max(0, Math.min(100, v));
-    prefSet("dazai_volume", String(volumeLevel));
-    if(qsVolume) qsVolume.value = volumeLevel;
-    if(qsVolumeVal) qsVolumeVal.textContent = (mutedState ? "Muted" : volumeLevel + "%");
-    if(showOsd) showOsd_("osd-volume","osd-volume-fill", mutedState ? 0 : volumeLevel, mutedState ? "🔇" : (volumeLevel>50?"🔊":volumeLevel>0?"🔉":"🔈"));
-  }
-  function applyBrightness(v, showOsd){
-    brightnessLevel = Math.max(30, Math.min(100, v));
-    prefSet("dazai_brightness", String(brightnessLevel));
-    if(qsBrightness) qsBrightness.value = brightnessLevel;
-    if(qsBrightnessVal) qsBrightnessVal.textContent = brightnessLevel + "%";
-    document.body.style.filter = brightnessLevel < 100 ? `brightness(${0.55 + brightnessLevel/100*0.45})` : "";
-    if(showOsd) showOsd_("osd-brightness","osd-brightness-fill", brightnessLevel, "☀");
-  }
-  function showOsd_(elId, fillId, pct, icon){
-    const el = document.getElementById(elId), fill = document.getElementById(fillId);
-    if(!el || !fill) return;
-    fill.style.width = pct + "%";
-    el.querySelector(".osd-icon").textContent = icon;
-    el.hidden = false;
-    el.style.animation = "none"; void el.offsetWidth; el.style.animation = "";
-    clearTimeout(el._t);
-    el._t = setTimeout(()=>{ el.hidden = true; }, 1550);
-  }
-  qsVolume?.addEventListener("input", (e)=>{ mutedState = false; applyVolume(Number(e.target.value), true); });
-  qsBrightness?.addEventListener("input", (e)=>applyBrightness(Number(e.target.value), true));
-  applyVolume(volumeLevel,false); applyBrightness(brightnessLevel,false);
-
-  /* ---------- app launcher (wofi-style) ---------- */
-  const LAUNCHER_APPS = [
-    {icon:"🏠", name:"Home Desktop", sub:"Workspace 1", action:()=>setWorkspace(1)},
-    {icon:"⬡", name:"Tiled Workspace", sub:"Workspace 2", action:()=>setWorkspace(2)},
-    {icon:"❯_", name:"Terminal", sub:"Workspace 3", action:()=>setWorkspace(3)},
-    {icon:"📁", name:"File Manager", sub:"Workspace 4", action:()=>setWorkspace(4)},
-    {icon:"📊", name:"Dashboard", sub:"Workspace 5", action:()=>setWorkspace(5)},
-    {icon:"PY", name:"about.py", sub:"About me", action:()=>openFileWindow("about")},
-    {icon:"JSON", name:"projects.json", sub:"Projects", action:()=>openFileWindow("projects")},
-    {icon:"JS", name:"skills.js", sub:"Skills", action:()=>openFileWindow("skills")},
-    {icon:"TS", name:"experience.ts", sub:"Experience", action:()=>openFileWindow("experience")},
-    {icon:"JSX", name:"contact.jsx", sub:"Contact", action:()=>openFileWindow("contact")},
-    {icon:"", name:"GitHub", sub:"github.com/8mwk", action:()=>window.open("https://github.com/8mwk","_blank")},
-    {icon:"⏻", name:"Lock Session", sub:"Alt+L", action:()=>lockSession()},
-    {icon:"⚙", name:"Quick Settings", sub:"Wi-Fi, volume, theme", action:()=>toggleQS(true)},
-    {icon:"⌨", name:"Keybind Cheatsheet", sub:"Alt+/", action:()=>toggleKeycheat(true)},
-    {icon:"⊞", name:"Workspace Overview", sub:"Alt+Tab", action:()=>toggleOverview(true)}
-  ];
-  const launcherOverlay = document.getElementById("launcher-overlay");
-  const launcherInput = document.getElementById("launcher-input");
-  const launcherResults = document.getElementById("launcher-results");
-  let launcherSel = 0, launcherFiltered = LAUNCHER_APPS.slice();
-  function renderLauncher(){
-    if(!launcherFiltered.length){
-      launcherResults.innerHTML = `<div class="launcher-empty">No matches.</div>`;
-      return;
-    }
-    launcherResults.innerHTML = launcherFiltered.map((a,i)=>
-      `<button class="launcher-item${i===launcherSel?" sel":""}" data-i="${i}"><span class="li-icon">${a.icon}</span>${esc(a.name)}<span class="li-sub">${esc(a.sub)}</span></button>`
-    ).join("");
-    launcherResults.querySelectorAll(".launcher-item").forEach(btn=>{
-      btn.addEventListener("click", ()=>runLauncherItem(Number(btn.dataset.i)));
-    });
-  }
-  function runLauncherItem(i){
-    const app = launcherFiltered[i];
-    if(!app) return;
-    toggleLauncher(false);
-    app.action();
-  }
-  function toggleLauncher(force){
-    if(!launcherOverlay) return;
-    const willShow = typeof force === "boolean" ? force : launcherOverlay.hidden;
-    launcherOverlay.hidden = !willShow;
-    if(willShow){
-      launcherInput.value = ""; launcherFiltered = LAUNCHER_APPS.slice(); launcherSel = 0;
-      renderLauncher();
-      setTimeout(()=>launcherInput.focus(), 20);
-    }
-  }
-  document.getElementById("btn-launcher")?.addEventListener("click", ()=>toggleLauncher(true));
-  launcherInput?.addEventListener("input", ()=>{
-    const q = launcherInput.value.trim().toLowerCase();
-    launcherFiltered = !q ? LAUNCHER_APPS.slice() : LAUNCHER_APPS.filter(a => a.name.toLowerCase().includes(q) || a.sub.toLowerCase().includes(q));
-    launcherSel = 0;
-    renderLauncher();
-  });
-  launcherInput?.addEventListener("keydown", (e)=>{
-    if(e.key === "ArrowDown"){ e.preventDefault(); launcherSel = Math.min(launcherFiltered.length-1, launcherSel+1); renderLauncher(); }
-    else if(e.key === "ArrowUp"){ e.preventDefault(); launcherSel = Math.max(0, launcherSel-1); renderLauncher(); }
-    else if(e.key === "Enter"){ runLauncherItem(launcherSel); }
-    else if(e.key === "Escape"){ toggleLauncher(false); }
-  });
-  launcherOverlay?.addEventListener("click", (e)=>{ if(e.target === launcherOverlay) toggleLauncher(false); });
-
-  /* ---------- workspace overview (exposé) ---------- */
-  const overviewOverlay = document.getElementById("overview-overlay");
-  const overviewGrid = document.getElementById("overview-grid");
-  const WS_NAMES = {1:"Home",2:"Tiled",3:"Terminal",4:"Files",5:"Dashboard"};
-  function buildOverview(){
-    if(!overviewGrid) return;
-    overviewGrid.innerHTML = [1,2,3,4,5].map(n=>
-      `<button class="overview-card${n===currentWs?" current":""}" data-ws="${n}"><span class="oc-num">${n}</span><span>${WS_NAMES[n]}</span></button>`
-    ).join("");
-    overviewGrid.querySelectorAll(".overview-card").forEach(c=>{
-      c.addEventListener("click", ()=>{ toggleOverview(false); setWorkspace(c.dataset.ws); });
-    });
-  }
-  function toggleOverview(force){
-    if(!overviewOverlay) return;
-    const willShow = typeof force === "boolean" ? force : overviewOverlay.hidden;
-    if(willShow) buildOverview();
-    overviewOverlay.hidden = !willShow;
-  }
-  document.getElementById("btn-overview")?.addEventListener("click", ()=>toggleOverview());
-  overviewOverlay?.addEventListener("click", (e)=>{ if(e.target === overviewOverlay) toggleOverview(false); });
-
-  /* ---------- lock screen ---------- */
-  const lockScreen = document.getElementById("lock-screen");
-  function lockSession(){
-    if(!lockScreen) return;
-    lockScreen.hidden = false;
-    lockScreen.classList.remove("hide");
-  }
-  function unlockSession(){
-    if(!lockScreen || lockScreen.hidden) return;
-    lockScreen.classList.add("hide");
-    setTimeout(()=>{ lockScreen.hidden = true; }, 350);
-  }
-  lockScreen?.addEventListener("click", unlockSession);
-  window.addEventListener("keydown", (e)=>{
-    if(lockScreen && !lockScreen.hidden && (e.key === "Enter" || e.key === " ")) unlockSession();
-  });
-
-  /* ---------- keybind cheatsheet ---------- */
-  const keycheatOverlay = document.getElementById("keycheat-overlay");
-  const KEYBINDS = [
-    ["1 – 5","Switch workspace"],["Alt+D","Open app launcher"],["Alt+Tab","Workspace overview"],
-    ["Alt+L","Lock session"],["Alt+E","Open file manager"],["Alt+Return","Open terminal"],
-    ["Alt+Q","Close focused window"],["Alt+F","Toggle maximize focused window"],
-    ["Alt+Shift+W","Cycle wallpaper"],["Alt+Shift+P / PrtSc","Screenshot flash"],
-    ["Alt+, / Alt+.","Volume down / up"],["Alt+M","Mute toggle"],
-    ["Alt+Shift+, / .","Brightness down / up"],["Alt+N","Toggle Do Not Disturb"],
-    ["Alt+Shift+T","Cycle theme"],["Alt+/","This cheatsheet"],["Esc","Close overlay"]
-  ];
-  document.getElementById("keycheat-grid").innerHTML = KEYBINDS.map(([k,d])=>`<div class="kc-row"><span>${esc(d)}</span><span class="kc-key">${esc(k)}</span></div>`).join("");
-  function toggleKeycheat(force){
-    if(!keycheatOverlay) return;
-    keycheatOverlay.hidden = typeof force === "boolean" ? !force : !keycheatOverlay.hidden;
-  }
-  keycheatOverlay?.addEventListener("click", (e)=>{ if(e.target === keycheatOverlay) toggleKeycheat(false); });
-
-  /* ---------- screenshot flash ---------- */
-  const screenshotFlash = document.getElementById("screenshot-flash");
-  function takeScreenshot(){
-    if(!screenshotFlash) return;
-    screenshotFlash.classList.remove("flash"); void screenshotFlash.offsetWidth; screenshotFlash.classList.add("flash");
-    showNotification("Screenshot", "Saved to ~/Pictures/Screenshots (simulated).");
-  }
-
-  /* ---------- idle screensaver ---------- */
-  const screensaver = document.getElementById("screensaver");
-  const screensaverClock = document.getElementById("screensaver-clock");
-  let idleTimer = null;
-  function resetIdle(){
-    if(screensaver && !screensaver.hidden){ screensaver.hidden = true; }
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(()=>{
-      if(!screensaver || !state.booted) return;
-      if(!lockScreen.hidden || !launcherOverlay.hidden || !overviewOverlay.hidden) { resetIdle(); return; }
-      screensaver.hidden = false;
-    }, 90000);
-  }
-  function tickScreensaverClock(){
-    if(screensaverClock) screensaverClock.textContent = document.querySelector(".clock")?.textContent || "";
-  }
-  setInterval(tickScreensaverClock, 1000);
-  ["mousemove","mousedown","keydown","touchstart","scroll"].forEach(evt=>window.addEventListener(evt, resetIdle, {passive:true}));
-  resetIdle();
-
-  /* ---------- global keybinds (Hyprland-style, using Alt as the "Super" modifier) ---------- */
-  window.addEventListener("keydown", (e)=>{
-    if(!state.booted) return;
-    if(document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")){
-      if(e.key === "Escape") document.activeElement.blur();
-      return;
-    }
-    if(e.key === "Escape"){
-      if(!launcherOverlay.hidden) toggleLauncher(false);
-      else if(!overviewOverlay.hidden) toggleOverview(false);
-      else if(!keycheatOverlay.hidden) toggleKeycheat(false);
-      else if(!qsPanel.hidden) toggleQS(false);
-      return;
-    }
-    if(!e.altKey && e.key === "?") { toggleKeycheat(); return; }
-    if(!e.altKey) return;
-    switch(e.key){
-      case "d": case "D": e.preventDefault(); toggleLauncher(); break;
-      case "Tab": e.preventDefault(); toggleOverview(); break;
-      case "l": case "L": e.preventDefault(); lockSession(); break;
-      case "e": case "E": e.preventDefault(); setWorkspace(4); break;
-      case "Enter": e.preventDefault(); setWorkspace(3); break;
-      case "/": e.preventDefault(); toggleKeycheat(); break;
-      case "m": case "M": e.preventDefault(); mutedState = !mutedState; prefSet("dazai_muted", mutedState?"1":"0"); applyVolume(volumeLevel, true); break;
-      case "n": case "N": e.preventDefault(); setDnd(!document.body.classList.contains("dnd-on")); showNotification("Do Not Disturb", document.body.classList.contains("dnd-on") ? "Notifications silenced." : "Notifications resumed."); break;
-      case ",": e.preventDefault();
-        if(e.shiftKey) applyBrightness(brightnessLevel-10, true); else { mutedState=false; applyVolume(volumeLevel-10, true); } break;
-      case ".": e.preventDefault();
-        if(e.shiftKey) applyBrightness(brightnessLevel+10, true); else { mutedState=false; applyVolume(volumeLevel+10, true); } break;
-      case "q": case "Q": {
-        e.preventDefault();
-        const wins = Array.from(document.querySelectorAll(".ws1-filewin"));
-        if(wins.length) wins[wins.length-1].remove();
-        break;
-      }
-      case "f": case "F": {
-        e.preventDefault();
-        const wins = Array.from(document.querySelectorAll(".ws1-filewin"));
-        if(wins.length) toggleMaximize(wins[wins.length-1]);
-        break;
-      }
-      case "w": case "W":
-        if(e.shiftKey){ e.preventDefault(); cycleWallpaper(); }
-        break;
-      case "p": case "P":
-        if(e.shiftKey){ e.preventDefault(); takeScreenshot(); }
-        break;
-      case "t": case "T":
-        if(e.shiftKey){
-          e.preventDefault();
-          const ids = THEMES.map(t=>t.id);
-          const cur = prefGet("dazai_theme","mocha");
-          applyTheme(ids[(ids.indexOf(cur)+1) % ids.length]);
-          showNotification("Theme", "Switched to " + THEMES[(ids.indexOf(cur)+1) % ids.length].name);
-        }
-        break;
-    }
-  });
-  window.addEventListener("keydown", (e)=>{ if(e.key === "PrintScreen") takeScreenshot(); });
-
-  /* ---------- wallpaper cycling ---------- */
-  const WALLPAPER_PRESETS = [
-    "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=60",
-    "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&q=60",
-    "https://images.unsplash.com/photo-1502134249126-9f3755a50d78?w=1200&q=60"
-  ];
-  let wallpaperIdx = -1;
-  function cycleWallpaper(){
-    wallpaperIdx = (wallpaperIdx + 1) % (WALLPAPER_PRESETS.length + 1);
-    if(wallpaperIdx === WALLPAPER_PRESETS.length){
-      resetWallpaper(); try{ localStorage.removeItem("dazai_wallpaper_url"); }catch(e){}
-      showNotification("Wallpaper", "Reset to default.");
-      return;
-    }
-    const url = WALLPAPER_PRESETS[wallpaperIdx];
-    setWallpaper(url);
-    try{ localStorage.setItem("dazai_wallpaper_url", url); }catch(e){}
-    showNotification("Wallpaper", "Cycled to preset " + (wallpaperIdx+1) + ".");
-  }
-
-  /* ---------- draggable / resizable / maximizable floating windows ---------- */
-  function makeDraggable(win){
-    const bar = win.querySelector(".window-titlebar");
-    if(!bar) return;
-    let sx=0, sy=0, ox=0, oy=0, dragging=false;
-    bar.addEventListener("mousedown", (e)=>{
-      if(e.target.closest("button")) return;
-      dragging = true;
-      const rect = win.getBoundingClientRect();
-      sx = e.clientX; sy = e.clientY; ox = rect.left; oy = rect.top;
-      win.style.position = "fixed"; win.style.left = ox+"px"; win.style.top = oy+"px"; win.style.margin = "0";
-      document.body.style.userSelect = "none";
-    });
-    window.addEventListener("mousemove", (e)=>{
-      if(!dragging) return;
-      win.style.left = Math.max(0, ox + (e.clientX-sx)) + "px";
-      win.style.top = Math.max(38, oy + (e.clientY-sy)) + "px";
-    });
-    window.addEventListener("mouseup", ()=>{ dragging=false; document.body.style.userSelect=""; });
-  }
-  function makeResizable(win){
-    const handle = document.createElement("div");
-    handle.className = "ws1-filewin-resize";
-    handle.innerHTML = "◢";
-    win.appendChild(handle);
-    let sx=0, sy=0, sw=0, sh=0, resizing=false;
-    handle.addEventListener("mousedown", (e)=>{
-      e.stopPropagation(); resizing = true;
-      const rect = win.getBoundingClientRect();
-      sx=e.clientX; sy=e.clientY; sw=rect.width; sh=rect.height;
-    });
-    window.addEventListener("mousemove", (e)=>{
-      if(!resizing) return;
-      win.style.width = Math.max(260, sw + (e.clientX-sx)) + "px";
-      win.style.maxHeight = "none";
-      win.style.height = Math.max(160, sh + (e.clientY-sy)) + "px";
-    });
-    window.addEventListener("mouseup", ()=>{ resizing=false; });
-  }
-  function toggleMaximize(win){
-    win.classList.toggle("maximized");
-  }
-  function enhanceFileWindow(win){
-    makeDraggable(win);
-    makeResizable(win);
-    win.addEventListener("mousedown", ()=>{
-      document.querySelectorAll(".ws1-filewin").forEach(w=>w.classList.remove("win-focused"));
-      win.classList.add("win-focused");
-    });
-    const bar = win.querySelector(".window-titlebar");
-    if(bar && !bar.querySelector(".ws1-filewin-max")){
-      const maxBtn = document.createElement("button");
-      maxBtn.className = "ws1-filewin-max";
-      maxBtn.textContent = "▢";
-      maxBtn.title = "Maximize (Alt+F)";
-      maxBtn.addEventListener("click", (e)=>{ e.stopPropagation(); toggleMaximize(win); });
-      const closeBtn = bar.querySelector(".ws1-filewin-close");
-      bar.insertBefore(maxBtn, closeBtn);
-    }
-  }
-  // wrap the original openFileWindow to enhance any newly created window
-  const _origOpenFileWindow = openFileWindow;
-  openFileWindow = function(key){
-    const existed = document.getElementById("ws1-filewin-" + key);
-    _origOpenFileWindow(key);
-    const win = document.getElementById("ws1-filewin-" + key);
-    if(win && !existed) enhanceFileWindow(win);
+  /* ---------------- expose WM control bridge for embedded Terminal ---------------- */
+  window.wmAPI = {
+    notify, lockScreen, unlockScreen, showVolumeOSD, takeScreenshot,
+    toggleCheatsheet, setTheme, setGaps, toggleBlurMode, setBlurMode,
+    wmSnapFocused, wmListWindows, openFileWindow, wmFocus, playMatrixRain
   };
-  /* ---------- easter eggs & achievements ---------- */
-  const ACHIEVEMENTS_KEY = "dazai_achievements";
-  function unlockAchievement(id, title){
-    let list = [];
-    try{ list = JSON.parse(localStorage.getItem(ACHIEVEMENTS_KEY) || "[]"); }catch(e){}
-    if(list.includes(id)) return;
-    list.push(id);
-    try{ localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(list)); }catch(e){}
-    showNotification("🏆 Achievement Unlocked", title, 5000);
-  }
-  // Konami code
-  const KONAMI = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
-  let konamiIdx = 0;
-  window.addEventListener("keydown", (e)=>{
-    konamiIdx = (e.key === KONAMI[konamiIdx]) ? konamiIdx+1 : (e.key === KONAMI[0] ? 1 : 0);
-    if(konamiIdx === KONAMI.length){
-      konamiIdx = 0;
-      unlockAchievement("konami", "Found the Konami code.");
-      document.body.style.animation = "none";
+  window.addEventListener("message", (e)=>{
+    if(e.data === "wm-close-terminal"){
+      const win = document.getElementById("ws1-floatwin-terminal");
+      if(win) win.hidden = true;
     }
   });
-
-  /* ---------- extra terminal commands ---------- */
-  const _origRunCommand = runCommand;
-  runCommand = function(raw){
-    const trimmed = raw.trim();
-    const base = trimmed.split(" ")[0].toLowerCase();
-    const extra = {
-      "hyprctl": ()=>printLine("Monitor eDP-1: 1920x1080@60Hz, active workspace 1<br>Layout: dwindle · Gaps: 6px · Border: 2px"),
-      "pactl": ()=>printLine(`Volume: ${mutedState?"muted":volumeLevel+"%"} · Brightness: ${brightnessLevel}%`),
-      "lock": ()=>{ lockSession(); printLine("Locking session…"); },
-      "matrix": ()=>{ printLine('<span style="color:var(--green)">Wake up, Neo…</span>'); unlockAchievement("matrix","Took the red pill (typed 'matrix')."); },
-      "achievements": ()=>{
-        let list = [];
-        try{ list = JSON.parse(localStorage.getItem(ACHIEVEMENTS_KEY) || "[]"); }catch(e){}
-        printLine(list.length ? `Unlocked: ${list.join(", ")}` : "No achievements yet — try 'matrix', the Konami code, or explore.");
-      }
-    };
-    if(base === "theme"){
-      printLine(`<span class="ws3-prompt">dazai@portfolio:~$</span> ${esc(trimmed)}`);
-      const arg = trimmed.slice(5).trim().toLowerCase();
-      const ids = THEMES.map(t=>t.id);
-      if(ids.includes(arg)){ applyTheme(arg); printLine(`Theme set to ${arg}.`); }
-      else printLine(`Usage: theme &lt;${ids.join("|")}&gt;`);
-      return;
-    }
-    if(base === "sudo" && /rm\s+-rf\s+\//.test(trimmed)){
-      printLine(`<span class="ws3-prompt">dazai@portfolio:~$</span> ${esc(trimmed)}`);
-      printLine('<span class="boot-fail">Permission denied — nice try. 🙂</span>');
-      unlockAchievement("rm-rf","Tried to rm -rf / (bold move).");
-      return;
-    }
-    if(extra[base]){
-      printLine(`<span class="ws3-prompt">dazai@portfolio:~$</span> ${esc(trimmed)}`);
-      extra[base]();
-      return;
-    }
-    _origRunCommand(raw);
-  };
-
-  /* ---------- respect persisted quick-toggles: apply on load without duplicate notifications ---------- */
-  document.querySelectorAll(".qs-toggle").forEach(btn=>{
-    const key = btn.dataset.toggle;
-    if(key === "dnd"){ btn.classList.toggle("on", document.body.classList.contains("dnd-on")); }
-  });
-
 })();
