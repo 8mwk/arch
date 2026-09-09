@@ -1,6 +1,18 @@
 (function(){
 "use strict";
 
+  /* ---------------- theme restore (runs first to avoid a flash of the wrong color) ---------------- */
+  (function(){
+    let saved = "purple";
+    try{ saved = localStorage.getItem("wm_theme") || "purple"; }catch(_){ /* unavailable */ }
+    const THEME_HEX = { green:"#5ad68c", blue:"#5ab8d6", purple:"#b892f5", red:"#f5716e", yellow:"#f0d264", pink:"#f792c9", cyan:"#6fe3d6" };
+    const THEME_RGB = { green:"90,214,140", blue:"90,184,214", purple:"184,146,245", red:"245,113,110", yellow:"240,210,100", pink:"247,146,201", cyan:"111,227,214" };
+    const hex = THEME_HEX[saved] || THEME_HEX.purple;
+    const rgb = THEME_RGB[saved] || THEME_RGB.purple;
+    document.documentElement.style.setProperty("--green", hex);
+    document.documentElement.style.setProperty("--accent-rgb", rgb);
+  })();
+
   /* ---------------- content ---------------- */
   const CONTENT = {
     about: "Hi, I'm Dazai.\nA developer who builds Discord bots and web things — mostly from a phone.\n\nI run BAD APPLE: whatever I'm shipping this week. Antinuke systems, music bots, AI voice chat, gacha games, the occasional Minecraft mod.\n\nTermux is my terminal. MongoDB is my memory. Lavalink never stops buffering.",
@@ -194,22 +206,10 @@
     document.querySelectorAll(".workspace").forEach(w=>w.classList.remove("active"));
     const target = document.getElementById("ws-"+n);
     if(target) target.classList.add("active");
-    document.querySelectorAll(".ws-pill").forEach(p=>{
-      const isActive = p.dataset.ws === String(n);
-      p.classList.toggle("active", isActive);
-      p.setAttribute("aria-selected", String(isActive));
-    });
+    document.querySelectorAll(".ws-pill").forEach(p=>p.classList.toggle("active", p.dataset.ws === String(n)));
   }
   document.querySelectorAll(".ws-pill").forEach(p=>p.addEventListener("click", ()=>setWorkspace(p.dataset.ws)));
   document.querySelectorAll(".dock-btn[data-ws]").forEach(b=>b.addEventListener("click", ()=>setWorkspace(b.dataset.ws)));
-  document.getElementById("ws-pills")?.addEventListener("wheel", (e)=>{
-    e.preventDefault();
-    const order = ["1","2","3","4","5"];
-    const current = document.querySelector(".workspace.active");
-    const idx = order.indexOf((current ? current.id : "ws-1").replace("ws-",""));
-    const next = e.deltaY > 0 ? Math.min(idx+1, order.length-1) : Math.max(idx-1, 0);
-    setWorkspace(order[next]);
-  }, {passive:false});
   document.getElementById("ws1-dock-terminal")?.addEventListener("click", ()=>{
     toggleFloatWin("ws1-floatwin-terminal", 3);
   });
@@ -264,7 +264,9 @@
 
     if(e.key === "Escape"){
       const menu = document.getElementById("wm-contextmenu");
+      const launcher = document.getElementById("wm-launcher");
       if(menu && !menu.hidden) menu.hidden = true;
+      if(launcher && !launcher.hidden) closeLauncher();
     }
 
     if(e.altKey && !e.ctrlKey){
@@ -272,6 +274,7 @@
       switch(e.key){
         case "Enter": e.preventDefault(); openTerminalWindow(); break;
         case "e": case "E": e.preventDefault(); openFileManagerWindow(); break;
+        case "a": case "A": e.preventDefault(); toggleLauncher(); break;
         case "q": case "Q": if(focused){ e.preventDefault(); wmCloseWindow(focused); } break;
         case "f": case "F":
           if(focused){
@@ -378,6 +381,7 @@
     return span ? span.textContent : "Window";
   }
   function wmIconOf(win){
+    if(win.dataset.wmIcon) return win.dataset.wmIcon;
     if(win.id === "ws1-floatwin-terminal") return ">_";
     if(win.id === "ws1-floatwin-filemanager") return "📁";
     if(win.id === "ws1-floatwin-youtube") return "▶";
@@ -638,6 +642,593 @@
     notify("YouTube", "API key saved");
   });
 
+  /* ---------------- app launcher + generic app windows ---------------- */
+  async function appFetchJSON(url, opts){
+    const res = await fetch(url, opts);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    return res.json();
+  }
+
+  function renderGithubApp(body){
+    body.innerHTML = `
+      <div class="app-toolbar">
+        <input type="text" class="app-input" id="gh-username-input" placeholder="GitHub username" value="soyakatori" autocomplete="off" spellcheck="false">
+        <button class="app-btn" id="gh-load-btn">Load</button>
+      </div>
+      <div class="app-scroll" id="gh-result"><div class="app-empty-msg">Loading…</div></div>
+    `;
+    async function load(){
+      const uname = body.querySelector("#gh-username-input").value.trim();
+      const result = body.querySelector("#gh-result");
+      if(!uname) return;
+      result.innerHTML = `<div class="app-empty-msg">Loading…</div>`;
+      try{
+        const user = await appFetchJSON(`https://api.github.com/users/${encodeURIComponent(uname)}`);
+        if(user.message){ result.innerHTML = `<div class="app-empty-msg">${esc(user.message)}</div>`; return; }
+        const repos = await appFetchJSON(`https://api.github.com/users/${encodeURIComponent(uname)}/repos?sort=updated&per_page=8`);
+        const repoHtml = (repos||[]).map(r=>`<div class="app-card"><strong>${esc(r.name)}</strong>${r.description?`<div style="color:var(--text-dim);font-size:11px;margin-top:2px;">${esc(r.description)}</div>`:""}<div style="color:var(--text-dim);font-size:10.5px;margin-top:4px;">★ ${r.stargazers_count} · ${esc(r.language||"—")}</div></div>`).join("") || `<div class="app-empty-msg">No public repos.</div>`;
+        result.innerHTML = `
+          <div class="app-row" style="margin-bottom:10px;">
+            <img src="${esc(user.avatar_url)}" width="48" height="48" style="border-radius:50%;" alt="">
+            <div>
+              <div style="font-weight:700;">${esc(user.name||user.login)}</div>
+              <div style="color:var(--text-dim);font-size:11px;">@${esc(user.login)} · ${user.followers} followers</div>
+            </div>
+          </div>
+          ${user.bio?`<div style="font-size:12px;margin-bottom:10px;">${esc(user.bio)}</div>`:""}
+          <div class="app-section-title">Recent repos</div>
+          ${repoHtml}
+        `;
+      }catch(_){
+        result.innerHTML = `<div class="app-empty-msg">Couldn't load — check the username.</div>`;
+      }
+    }
+    body.querySelector("#gh-load-btn").addEventListener("click", load);
+    body.querySelector("#gh-username-input").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); load(); } });
+    load();
+  }
+
+  const WEATHER_CODES = {0:"Clear sky",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Rime fog",51:"Light drizzle",53:"Drizzle",55:"Dense drizzle",61:"Light rain",63:"Rain",65:"Heavy rain",71:"Light snow",73:"Snow",75:"Heavy snow",80:"Rain showers",81:"Rain showers",82:"Violent showers",95:"Thunderstorm",96:"Thunderstorm + hail",99:"Severe thunderstorm"};
+  function renderWeatherApp(body){
+    body.innerHTML = `
+      <div class="app-toolbar">
+        <input type="text" class="app-input" id="wx-city-input" placeholder="City name" autocomplete="off" spellcheck="false">
+        <button class="app-btn-alt" id="wx-geo-btn" title="Use my location">📍</button>
+        <button class="app-btn" id="wx-go-btn">Go</button>
+      </div>
+      <div class="app-scroll" id="wx-result"><div class="app-empty-msg">Search a city or use your location.</div></div>
+    `;
+    async function loadCoords(lat, lon, label){
+      const result = body.querySelector("#wx-result");
+      result.innerHTML = `<div class="app-empty-msg">Loading…</div>`;
+      try{
+        const data = await appFetchJSON(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`);
+        const c = data.current;
+        const desc = WEATHER_CODES[c.weather_code] || "—";
+        result.innerHTML = `
+          <div style="text-align:center;padding:10px 0;">
+            <div style="font-size:11px;color:var(--text-dim);">${esc(label)}</div>
+            <div style="font-size:38px;font-weight:700;margin:4px 0;">${Math.round(c.temperature_2m)}°C</div>
+            <div style="font-size:12.5px;color:var(--text-dim);">${esc(desc)}</div>
+          </div>
+          <div class="app-row" style="justify-content:space-around;font-size:11.5px;color:var(--text-dim);">
+            <span>💧 ${c.relative_humidity_2m}%</span>
+            <span>💨 ${Math.round(c.wind_speed_10m)} km/h</span>
+          </div>
+        `;
+      }catch(_){ result.innerHTML = `<div class="app-empty-msg">Couldn't load weather.</div>`; }
+    }
+    async function searchCity(){
+      const q = body.querySelector("#wx-city-input").value.trim();
+      const result = body.querySelector("#wx-result");
+      if(!q) return;
+      result.innerHTML = `<div class="app-empty-msg">Searching…</div>`;
+      try{
+        const geo = await appFetchJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1`);
+        const place = geo.results && geo.results[0];
+        if(!place){ result.innerHTML = `<div class="app-empty-msg">City not found.</div>`; return; }
+        await loadCoords(place.latitude, place.longitude, `${place.name}, ${place.country_code||""}`);
+      }catch(_){ result.innerHTML = `<div class="app-empty-msg">Couldn't search — try again.</div>`; }
+    }
+    body.querySelector("#wx-go-btn").addEventListener("click", searchCity);
+    body.querySelector("#wx-city-input").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); searchCity(); } });
+    body.querySelector("#wx-geo-btn").addEventListener("click", ()=>{
+      if(!navigator.geolocation){ notify("Weather", "Geolocation unavailable"); return; }
+      navigator.geolocation.getCurrentPosition(
+        pos=>loadCoords(pos.coords.latitude, pos.coords.longitude, "Your location"),
+        ()=>notify("Weather", "Location permission denied")
+      );
+    });
+  }
+
+  function renderCalculatorApp(body){
+    body.innerHTML = `
+      <div id="calc-display" class="app-card" style="font-size:24px;text-align:right;">0</div>
+      <div id="calc-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:1;"></div>
+    `;
+    const display = body.querySelector("#calc-display");
+    const grid = body.querySelector("#calc-grid");
+    let expr = "";
+    function render(){ display.textContent = expr || "0"; }
+    const keys = [
+      {l:"C"},{l:"⌫"},{l:"%"},{l:"÷"},
+      {l:"7"},{l:"8"},{l:"9"},{l:"×"},
+      {l:"4"},{l:"5"},{l:"6"},{l:"−"},
+      {l:"1"},{l:"2"},{l:"3"},{l:"+"},
+      {l:"0",span:2},{l:"."},{l:"="}
+    ];
+    grid.innerHTML = keys.map(k=>`<button class="app-btn-alt" data-k="${esc(k.l)}" style="font-size:14px;${k.span?`grid-column:span ${k.span};`:""}">${esc(k.l)}</button>`).join("");
+    grid.querySelectorAll("button").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const k = btn.dataset.k;
+        if(k==="C"){ expr=""; }
+        else if(k==="⌫"){ expr = expr.slice(0,-1); }
+        else if(k==="="){
+          try{
+            const safe = expr.replace(/×/g,"*").replace(/÷/g,"/").replace(/−/g,"-").replace(/%/g,"/100");
+            if(!/^[0-9+\-*/.()\s]*$/.test(safe)) throw new Error("bad");
+            const val = Function('"use strict";return ('+ (safe||"0") +')')();
+            expr = String(Math.round(val*1e10)/1e10);
+          }catch(_){ expr = "Error"; }
+        } else {
+          expr += k;
+        }
+        render();
+      });
+    });
+    render();
+  }
+
+  function renderNotesApp(body){
+    body.innerHTML = `<textarea class="app-textarea" id="notes-textarea" placeholder="Type your notes here — saved automatically."></textarea>`;
+    const ta = body.querySelector("#notes-textarea");
+    try{ ta.value = localStorage.getItem("app_notes") || ""; }catch(_){ /* unavailable */ }
+    let t;
+    ta.addEventListener("input", ()=>{
+      clearTimeout(t);
+      t = setTimeout(()=>{ try{ localStorage.setItem("app_notes", ta.value); }catch(_){ /* unavailable */ } }, 400);
+    });
+  }
+
+  const WORLD_CLOCK_ZONES = ["Local","UTC","America/New_York","America/Los_Angeles","Europe/London","Europe/Berlin","Asia/Kolkata","Asia/Tokyo","Asia/Dubai","Australia/Sydney"];
+  function renderWorldClockApp(body){
+    body.innerHTML = `<div class="app-scroll" id="wc-list"></div>`;
+    const list = body.querySelector("#wc-list");
+    function paint(){
+      list.innerHTML = WORLD_CLOCK_ZONES.map(z=>{
+        const tz = z === "Local" ? undefined : z;
+        const now = new Date();
+        const timeStr = new Intl.DateTimeFormat("en-US",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true, timeZone:tz}).format(now);
+        const dateStr = new Intl.DateTimeFormat("en-US",{weekday:"short",month:"short",day:"numeric", timeZone:tz}).format(now);
+        const label = z==="Local" ? "Local time" : z.split("/").pop().replace(/_/g," ");
+        return `<div class="app-card"><div class="app-row" style="justify-content:space-between;"><strong>${esc(label)}</strong><span style="font-size:15px;">${timeStr}</span></div><div style="font-size:10.5px;color:var(--text-dim);margin-top:2px;">${dateStr}</div></div>`;
+      }).join("");
+    }
+    paint();
+    const iv = setInterval(paint, 1000);
+    const watchdog = setInterval(()=>{ if(!document.body.contains(list)){ clearInterval(iv); clearInterval(watchdog); } }, 5000);
+  }
+
+  function renderTodoApp(body){
+    body.innerHTML = `
+      <div class="app-toolbar">
+        <input type="text" class="app-input" id="todo-input" placeholder="Add a task…" autocomplete="off">
+        <button class="app-btn" id="todo-add-btn">Add</button>
+      </div>
+      <div class="app-scroll" id="todo-list"></div>
+    `;
+    let items = [];
+    try{ items = JSON.parse(localStorage.getItem("app_todos")||"[]"); }catch(_){ items = []; }
+    function save(){ try{ localStorage.setItem("app_todos", JSON.stringify(items)); }catch(_){ /* unavailable */ } }
+    function paint(){
+      const list = body.querySelector("#todo-list");
+      if(!items.length){ list.innerHTML = `<div class="app-empty-msg">No tasks yet.</div>`; return; }
+      list.innerHTML = items.map((it,i)=>`
+        <div class="app-card app-row" style="justify-content:space-between;">
+          <label class="app-row" style="gap:8px;cursor:pointer;flex:1;">
+            <input type="checkbox" data-i="${i}" class="todo-check" ${it.done?"checked":""}>
+            <span style="${it.done?"text-decoration:line-through;color:var(--text-dim);":""}">${esc(it.text)}</span>
+          </label>
+          <button class="todo-del" data-i="${i}" style="color:var(--text-dim);background:none;border:none;cursor:pointer;">✕</button>
+        </div>
+      `).join("");
+      list.querySelectorAll(".todo-check").forEach(cb=>cb.addEventListener("change", e=>{
+        items[+e.target.dataset.i].done = e.target.checked; save(); paint();
+      }));
+      list.querySelectorAll(".todo-del").forEach(btn=>btn.addEventListener("click", e=>{
+        items.splice(+e.target.dataset.i,1); save(); paint();
+      }));
+    }
+    function add(){
+      const input = body.querySelector("#todo-input");
+      const val = input.value.trim();
+      if(!val) return;
+      items.push({text:val, done:false});
+      input.value = "";
+      save(); paint();
+    }
+    body.querySelector("#todo-add-btn").addEventListener("click", add);
+    body.querySelector("#todo-input").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } });
+    paint();
+  }
+
+  function renderCurrencyApp(body){
+    body.innerHTML = `
+      <div class="app-toolbar">
+        <input type="number" class="app-input" id="cur-amount" value="1" style="flex:0 0 90px;">
+        <select id="cur-from" class="app-input" style="flex:0 0 80px;"></select>
+        <span style="align-self:center;color:var(--text-dim);">→</span>
+        <select id="cur-to" class="app-input" style="flex:0 0 80px;"></select>
+      </div>
+      <div class="app-scroll" id="cur-result"><div class="app-empty-msg">Loading…</div></div>
+    `;
+    const CODES = ["USD","EUR","GBP","JPY","INR","AUD","CAD","CHF","CNY","SGD","AED","BRL"];
+    const fromSel = body.querySelector("#cur-from");
+    const toSel = body.querySelector("#cur-to");
+    fromSel.innerHTML = CODES.map(c=>`<option value="${c}" ${c==="USD"?"selected":""}>${c}</option>`).join("");
+    toSel.innerHTML = CODES.map(c=>`<option value="${c}" ${c==="EUR"?"selected":""}>${c}</option>`).join("");
+    async function convert(){
+      const amount = parseFloat(body.querySelector("#cur-amount").value) || 1;
+      const from = fromSel.value, to = toSel.value;
+      const result = body.querySelector("#cur-result");
+      result.innerHTML = `<div class="app-empty-msg">Converting…</div>`;
+      try{
+        const data = await appFetchJSON(`https://api.frankfurter.app/latest?amount=${amount}&from=${from}&to=${to}`);
+        const val = data.rates[to];
+        result.innerHTML = `<div style="text-align:center;padding:16px 0;"><div style="font-size:11px;color:var(--text-dim);">${amount} ${from} =</div><div style="font-size:30px;font-weight:700;margin-top:4px;">${val.toLocaleString(undefined,{maximumFractionDigits:2})} ${to}</div></div>`;
+      }catch(_){ result.innerHTML = `<div class="app-empty-msg">Conversion failed — try again.</div>`; }
+    }
+    [body.querySelector("#cur-amount"), fromSel, toSel].forEach(el=>el.addEventListener("change", convert));
+    body.querySelector("#cur-amount").addEventListener("keydown", e=>{ if(e.key==="Enter") convert(); });
+    convert();
+  }
+
+  function renderWikipediaApp(body){
+    body.innerHTML = `
+      <div class="app-toolbar">
+        <input type="text" class="app-input" id="wiki-input" placeholder="Search Wikipedia…" autocomplete="off">
+        <button class="app-btn" id="wiki-go-btn">Search</button>
+      </div>
+      <div class="app-scroll" id="wiki-result"><div class="app-empty-msg">Search for a topic.</div></div>
+    `;
+    async function search(q){
+      const result = body.querySelector("#wiki-result");
+      result.innerHTML = `<div class="app-empty-msg">Searching…</div>`;
+      try{
+        const data = await appFetchJSON(`https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(q)}&limit=8&format=json&origin=*`);
+        const titles = data[1] || [];
+        if(!titles.length){ result.innerHTML = `<div class="app-empty-msg">No results.</div>`; return; }
+        result.innerHTML = titles.map(t=>`<button class="app-card" style="display:block;width:100%;text-align:left;cursor:pointer;" data-title="${esc(t)}">${esc(t)}</button>`).join("");
+        result.querySelectorAll("button[data-title]").forEach(btn=>btn.addEventListener("click", ()=>loadArticle(btn.dataset.title)));
+      }catch(_){ result.innerHTML = `<div class="app-empty-msg">Search failed.</div>`; }
+    }
+    async function loadArticle(title){
+      const result = body.querySelector("#wiki-result");
+      result.innerHTML = `<div class="app-empty-msg">Loading…</div>`;
+      try{
+        const data = await appFetchJSON(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+        result.innerHTML = `
+          <button class="app-btn-alt" id="wiki-back-btn" style="margin-bottom:8px;">← Back</button>
+          ${data.thumbnail?`<img src="${esc(data.thumbnail.source)}" style="width:100%;border-radius:6px;margin-bottom:8px;" alt="">`:""}
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px;">${esc(data.title)}</div>
+          <div style="font-size:12px;line-height:1.5;">${esc(data.extract||"")}</div>
+          <a href="${esc((data.content_urls&&data.content_urls.desktop&&data.content_urls.desktop.page)||"#")}" target="_blank" style="display:inline-block;margin-top:8px;font-size:11px;">Read full article ↗</a>
+        `;
+        body.querySelector("#wiki-back-btn")?.addEventListener("click", ()=>{
+          const q = body.querySelector("#wiki-input").value.trim();
+          if(q) search(q);
+        });
+      }catch(_){ result.innerHTML = `<div class="app-empty-msg">Couldn't load article.</div>`; }
+    }
+    body.querySelector("#wiki-go-btn").addEventListener("click", ()=>{
+      const q = body.querySelector("#wiki-input").value.trim();
+      if(q) search(q);
+    });
+    body.querySelector("#wiki-input").addEventListener("keydown", e=>{
+      if(e.key==="Enter"){ e.preventDefault(); const q=e.target.value.trim(); if(q) search(q); }
+    });
+  }
+
+  function hexToRgb(hex){
+    const h = hex.replace('#','');
+    const n = h.length===3 ? h.split('').map(c=>c+c).join('') : h;
+    const num = parseInt(n,16);
+    return [(num>>16)&255, (num>>8)&255, num&255];
+  }
+  function rgbToHsl(r,g,b){
+    r/=255; g/=255; b/=255;
+    const max=Math.max(r,g,b), min=Math.min(r,g,b);
+    let h,s; const l=(max+min)/2;
+    if(max===min){ h=s=0; }
+    else{
+      const d=max-min;
+      s = l>0.5 ? d/(2-max-min) : d/(max+min);
+      switch(max){
+        case r: h=(g-b)/d+(g<b?6:0); break;
+        case g: h=(b-r)/d+2; break;
+        default: h=(r-g)/d+4; break;
+      }
+      h/=6;
+    }
+    return [Math.round(h*360), Math.round(s*100), Math.round(l*100)];
+  }
+  function renderColorToolApp(body){
+    body.innerHTML = `
+      <div class="app-toolbar">
+        <input type="color" id="color-picker" value="#7ee787" style="width:44px;height:32px;padding:0;border:1px solid var(--border);border-radius:6px;background:none;">
+        <input type="text" class="app-input" id="color-hex" value="#7ee787" spellcheck="false">
+        <button class="app-btn-alt" id="color-random-btn">🎲</button>
+      </div>
+      <div id="color-info" class="app-scroll"></div>
+    `;
+    const picker = body.querySelector("#color-picker");
+    const hexInput = body.querySelector("#color-hex");
+    const info = body.querySelector("#color-info");
+    function update(hex){
+      if(!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+      picker.value = hex; hexInput.value = hex;
+      const [r,g,b] = hexToRgb(hex);
+      const [h,s,l] = rgbToHsl(r,g,b);
+      const palette = [-30,-15,0,15,30].map(off=>{
+        const hh=((h+off)%360+360)%360;
+        return `hsl(${hh},${s}%,${l}%)`;
+      });
+      info.innerHTML = `
+        <div style="height:70px;border-radius:8px;margin-bottom:10px;background:${hex};"></div>
+        <div class="app-card">HEX <span style="float:right;">${hex}</span></div>
+        <div class="app-card">RGB <span style="float:right;">${r}, ${g}, ${b}</span></div>
+        <div class="app-card">HSL <span style="float:right;">${h}°, ${s}%, ${l}%</span></div>
+        <div class="app-section-title" style="margin-top:10px;">Palette</div>
+        <div style="display:flex;gap:4px;border-radius:6px;overflow:hidden;height:36px;">
+          ${palette.map(c=>`<div style="flex:1;background:${c};"></div>`).join("")}
+        </div>
+      `;
+    }
+    picker.addEventListener("input", ()=>update(picker.value));
+    hexInput.addEventListener("change", ()=>update(hexInput.value));
+    body.querySelector("#color-random-btn").addEventListener("click", ()=>{
+      const hex = "#"+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,"0");
+      update(hex);
+    });
+    update("#7ee787");
+  }
+
+  function tinyMarkdown(src){
+    let html = esc(src);
+    html = html.replace(/```([\s\S]*?)```/g, (m,c)=>`<pre style="background:var(--bg-void);padding:8px;border-radius:6px;overflow-x:auto;"><code>${c}</code></pre>`);
+    html = html.replace(/^### (.*)$/gm, "<h3>$1</h3>");
+    html = html.replace(/^## (.*)$/gm, "<h2>$1</h2>");
+    html = html.replace(/^# (.*)$/gm, "<h1>$1</h1>");
+    html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
+    html = html.replace(/`([^`]+)`/g, "<code style='background:var(--bg-void);padding:1px 5px;border-radius:4px;'>$1</code>");
+    html = html.replace(/\[(.+?)\]\((.+?)\)/g, `<a href="$2" target="_blank" rel="noopener">$1</a>`);
+    html = html.replace(/^- (.*)$/gm, "<li>$1</li>");
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, m=>`<ul>${m}</ul>`);
+    html = html.replace(/\n{2,}/g, "</p><p>");
+    html = `<p>${html}</p>`.replace(/<p><\/p>/g,"");
+    return html;
+  }
+  function renderMarkdownApp(body){
+    const sample = "# Hello\n\nType **markdown** here and see it *rendered* live.\n\n- item one\n- item two\n\n`inline code` and a [link](https://example.com).";
+    body.innerHTML = `
+      <div style="display:flex;gap:8px;flex:1;min-height:0;">
+        <textarea class="app-textarea" id="md-input" style="flex:1;">${esc(sample)}</textarea>
+        <div class="app-scroll" id="md-preview" style="flex:1;background:var(--bg-panel-alt);border-radius:6px;padding:10px;font-size:12px;line-height:1.5;"></div>
+      </div>
+    `;
+    const input = body.querySelector("#md-input");
+    const preview = body.querySelector("#md-preview");
+    function update(){ preview.innerHTML = tinyMarkdown(input.value); }
+    input.addEventListener("input", update);
+    update();
+  }
+
+  function renderTwitchApp(body){
+    body.innerHTML = `
+      <div class="app-toolbar">
+        <input type="text" class="app-input" id="twitch-channel-input" placeholder="Twitch channel name" autocomplete="off">
+        <button class="app-btn" id="twitch-go-btn">Watch</button>
+      </div>
+      <div class="yt-player-wrap" id="twitch-wrap">
+        <span class="yt-player-empty">Enter a channel name to watch live.</span>
+      </div>
+    `;
+    function load(){
+      const ch = body.querySelector("#twitch-channel-input").value.trim();
+      if(!ch) return;
+      const wrap = body.querySelector("#twitch-wrap");
+      const parent = window.location.hostname || "localhost";
+      wrap.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${encodeURIComponent(ch)}&parent=${encodeURIComponent(parent)}" class="yt-player-frame" allowfullscreen title="Twitch player"></iframe>`;
+    }
+    body.querySelector("#twitch-go-btn").addEventListener("click", load);
+    body.querySelector("#twitch-channel-input").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); load(); } });
+  }
+
+  function renderQuoteApp(body){
+    body.innerHTML = `
+      <div class="app-toolbar">
+        <button class="app-btn-alt" id="quote-btn" style="flex:1;">💬 Quote</button>
+        <button class="app-btn-alt" id="joke-btn" style="flex:1;">😂 Joke</button>
+      </div>
+      <div class="app-scroll" id="quote-result"><div class="app-empty-msg">Tap a button to get started.</div></div>
+    `;
+    const result = body.querySelector("#quote-result");
+    async function getQuote(){
+      result.innerHTML = `<div class="app-empty-msg">Loading…</div>`;
+      try{
+        const data = await appFetchJSON("https://api.quotable.io/random");
+        result.innerHTML = `<div class="app-card" style="font-size:13px;line-height:1.5;">"${esc(data.content)}"<div style="margin-top:8px;color:var(--text-dim);font-size:11px;text-align:right;">— ${esc(data.author)}</div></div>`;
+      }catch(_){ result.innerHTML = `<div class="app-empty-msg">Couldn't fetch a quote — try again.</div>`; }
+    }
+    async function getJoke(){
+      result.innerHTML = `<div class="app-empty-msg">Loading…</div>`;
+      try{
+        const data = await appFetchJSON("https://icanhazdadjoke.com/", {headers:{Accept:"application/json"}});
+        result.innerHTML = `<div class="app-card" style="font-size:13px;line-height:1.5;">${esc(data.joke)}</div>`;
+      }catch(_){ result.innerHTML = `<div class="app-empty-msg">Couldn't fetch a joke — try again.</div>`; }
+    }
+    body.querySelector("#quote-btn").addEventListener("click", getQuote);
+    body.querySelector("#joke-btn").addEventListener("click", getJoke);
+    getQuote();
+  }
+
+  function renderQrApp(body){
+    body.innerHTML = `
+      <div class="app-toolbar">
+        <input type="text" class="app-input" id="qr-input" placeholder="Text or URL to encode" autocomplete="off">
+        <button class="app-btn" id="qr-go-btn">Generate</button>
+      </div>
+      <div class="app-scroll" id="qr-result" style="display:flex;align-items:center;justify-content:center;"><div class="app-empty-msg">Enter text to generate a QR code.</div></div>
+    `;
+    function generate(){
+      const val = body.querySelector("#qr-input").value.trim();
+      const result = body.querySelector("#qr-result");
+      if(!val) return;
+      const url = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(val)}`;
+      result.innerHTML = `<img src="${url}" width="220" height="220" alt="QR code" style="border-radius:8px;background:#fff;padding:8px;">`;
+    }
+    body.querySelector("#qr-go-btn").addEventListener("click", generate);
+    body.querySelector("#qr-input").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); generate(); } });
+  }
+
+  const THEME_APP_OPTIONS = [
+    {id:"green", label:"Green", hex:"#5ad68c"},
+    {id:"blue", label:"Blue", hex:"#5ab8d6"},
+    {id:"red", label:"Red", hex:"#f5716e"},
+    {id:"purple", label:"Purple", hex:"#b892f5"}
+  ];
+  function renderThemeApp(body){
+    let current = "purple";
+    try{ current = localStorage.getItem("wm_theme") || "purple"; }catch(_){ current = "purple"; }
+    body.innerHTML = `
+      <div class="app-section-title">Accent Color</div>
+      <div class="theme-swatch-grid">
+        ${THEME_APP_OPTIONS.map(o=>`
+          <button class="theme-swatch${o.id===current?" theme-swatch-active":""}" data-theme="${o.id}">
+            <span class="theme-swatch-dot" style="background:${o.hex};"></span>
+            <span class="theme-swatch-label">${o.label}</span>
+            <span class="theme-swatch-check">${o.id===current?"✓ Active":""}</span>
+          </button>
+        `).join("")}
+      </div>
+      <div class="app-empty-msg" style="margin-top:auto;">Applies instantly across the whole site and is remembered next time you visit.</div>
+    `;
+    body.querySelectorAll(".theme-swatch").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const id = btn.dataset.theme;
+        setTheme(id);
+        body.querySelectorAll(".theme-swatch").forEach(sw=>{
+          sw.classList.toggle("theme-swatch-active", sw.dataset.theme === id);
+          sw.querySelector(".theme-swatch-check").textContent = sw.dataset.theme === id ? "✓ Active" : "";
+        });
+        notify("Theme", `Accent set to ${THEME_APP_OPTIONS.find(o=>o.id===id).label}`);
+      });
+    });
+  }
+
+  const APPS = [
+    {id:"terminal", title:"Terminal", icon:">_", open:()=>openTerminalWindow()},
+    {id:"filemanager", title:"File Manager", icon:"📁", open:()=>openFileManagerWindow()},
+    {id:"youtube", title:"YouTube", icon:"▶", open:()=>openYoutubeWindow()},
+    {id:"github", title:"GitHub", icon:"🐙", render:renderGithubApp},
+    {id:"weather", title:"Weather", icon:"⛅", render:renderWeatherApp},
+    {id:"calculator", title:"Calculator", icon:"🧮", render:renderCalculatorApp},
+    {id:"notes", title:"Notes", icon:"📝", render:renderNotesApp},
+    {id:"worldclock", title:"World Clock", icon:"🕐", render:renderWorldClockApp},
+    {id:"todo", title:"To-Do", icon:"✅", render:renderTodoApp},
+    {id:"currency", title:"Currency", icon:"💱", render:renderCurrencyApp},
+    {id:"wikipedia", title:"Wikipedia", icon:"📖", render:renderWikipediaApp},
+    {id:"colortool", title:"Color Tool", icon:"🎨", render:renderColorToolApp},
+    {id:"markdown", title:"Markdown", icon:"⬇️", render:renderMarkdownApp},
+    {id:"twitch", title:"Twitch", icon:"🎮", render:renderTwitchApp},
+    {id:"quotes", title:"Quotes", icon:"💬", render:renderQuoteApp},
+    {id:"qrcode", title:"QR Code", icon:"🔲", render:renderQrApp},
+    {id:"theme", title:"Theme", icon:"🖌", render:renderThemeApp}
+  ];
+
+  function openApp(appId){
+    const app = APPS.find(a=>a.id===appId);
+    if(!app) return;
+    if(app.open){ app.open(); return; }
+    const winId = "app-win-"+app.id;
+    let win = document.getElementById(winId);
+    if(!win){
+      win = document.createElement("div");
+      win.className = "window ws1-floatwin wm-window";
+      win.id = winId;
+      win.hidden = true;
+      win.dataset.wmTitle = app.title;
+      win.dataset.wmIcon = app.icon;
+      win.innerHTML = `
+        <div class="window-titlebar wm-drag-handle">
+          <span class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
+          <span>${esc(app.title)}</span>
+          <button class="ws1-floatwin-close wm-close" aria-label="Close">✕</button>
+        </div>
+        <div class="window-body app-body"></div>
+        <span class="wm-resize-handle" aria-hidden="true"></span>
+      `;
+      desktopEl.appendChild(win);
+      win.querySelector(".ws1-floatwin-close").addEventListener("click", ()=>wmCloseWindow(win));
+      wmInit(win);
+      try{ app.render(win.querySelector(".app-body")); }
+      catch(_){ win.querySelector(".app-body").innerHTML = `<div class="app-empty-msg">This app failed to load.</div>`; }
+    }
+    win.hidden = false;
+    wmFocus(win);
+  }
+
+  function renderLauncher(filter){
+    const launcher = document.getElementById("wm-launcher");
+    if(!launcher) return;
+    const q = (filter||"").toLowerCase();
+    const items = APPS.filter(a=>a.title.toLowerCase().includes(q));
+    const grid = launcher.querySelector(".wm-launcher-grid");
+    if(!grid) return;
+    grid.innerHTML = items.length ? items.map(a=>`
+      <button class="wm-launcher-item" data-app="${a.id}">
+        <span class="wm-launcher-icon">${a.icon}</span>
+        <span class="wm-launcher-label">${esc(a.title)}</span>
+      </button>
+    `).join("") : `<div class="wm-launcher-empty">No apps found.</div>`;
+    grid.querySelectorAll(".wm-launcher-item").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        closeLauncher();
+        openApp(btn.dataset.app);
+      });
+    });
+  }
+  function openLauncher(){
+    const launcher = document.getElementById("wm-launcher");
+    if(!launcher) return;
+    if(!launcher.dataset.built){
+      launcher.innerHTML = `
+        <div class="wm-launcher-card">
+          <input type="text" class="wm-launcher-search" id="wm-launcher-search" placeholder="Search apps…" autocomplete="off" spellcheck="false">
+          <div class="wm-launcher-grid" id="wm-launcher-grid"></div>
+        </div>
+      `;
+      launcher.dataset.built = "1";
+      launcher.querySelector("#wm-launcher-search").addEventListener("input", (e)=>renderLauncher(e.target.value));
+      launcher.addEventListener("click", (e)=>{ if(e.target === launcher) closeLauncher(); });
+    }
+    renderLauncher("");
+    launcher.hidden = false;
+    const search = launcher.querySelector("#wm-launcher-search");
+    if(search){ search.value = ""; setTimeout(()=>search.focus(), 30); }
+  }
+  function closeLauncher(){
+    const launcher = document.getElementById("wm-launcher");
+    if(launcher) launcher.hidden = true;
+  }
+  function toggleLauncher(){
+    const launcher = document.getElementById("wm-launcher");
+    if(!launcher) return;
+    if(launcher.hidden) openLauncher(); else closeLauncher();
+  }
+  document.getElementById("ws1-dock-launcher")?.addEventListener("click", toggleLauncher);
+
   function wmCycleFocus(){
     const wins = wmOpenWindows();
     if(!wins.length) return;
@@ -699,6 +1290,8 @@
 
   /* ---------------- right-click context menu ---------------- */
   const contextMenuItems = [
+    {label:"Show Applications", action:()=>openLauncher()},
+    {sep:true},
     {label:"New Terminal", action:()=>openTerminalWindow()},
     {label:"New File Manager", action:()=>openFileManagerWindow()},
     {sep:true},
@@ -739,11 +1332,27 @@
   });
 
   /* ---------------- terminal-facing WM controls ---------------- */
-  const WM_THEMES = { green:"#5ad68c", blue:"#5ab8d6", purple:"#b892f5", red:"#f5716e", yellow:"#f0d264", pink:"#f792c9", cyan:"#6fe3d6" };
-  function setTheme(name){
-    const c = WM_THEMES[name];
-    if(!c) return false;
-    document.documentElement.style.setProperty("--green", c);
+  const WM_THEMES = {
+    green:{hex:"#5ad68c", rgb:"90,214,140"},
+    blue:{hex:"#5ab8d6", rgb:"90,184,214"},
+    purple:{hex:"#b892f5", rgb:"184,146,245"},
+    red:{hex:"#f5716e", rgb:"245,113,110"},
+    yellow:{hex:"#f0d264", rgb:"240,210,100"},
+    pink:{hex:"#f792c9", rgb:"247,146,201"},
+    cyan:{hex:"#6fe3d6", rgb:"111,227,214"}
+  };
+  const THEME_KEY = "wm_theme";
+  function setTheme(name, skipSave){
+    const t = WM_THEMES[name];
+    if(!t) return false;
+    document.documentElement.style.setProperty("--green", t.hex);
+    document.documentElement.style.setProperty("--accent-rgb", t.rgb);
+    if(!skipSave){
+      try{ localStorage.setItem(THEME_KEY, name); }catch(_){ /* unavailable */ }
+    }
+    document.querySelectorAll(".theme-swatch").forEach(sw=>{
+      sw.classList.toggle("theme-swatch-active", sw.dataset.theme === name);
+    });
     return true;
   }
   function setGaps(n){
@@ -896,7 +1505,7 @@
       ["Window manager", [
         ["theme <name>","green/blue/purple/red/yellow/pink/cyan"], ["gaps <n>","Tile gap size 0-40"],
         ["blur on|off","Toggle window blur"], ["snap <dir>","left/right/max/float"],
-        ["windows","List open windows"], ["screenshot","Take a screenshot"], ["youtube <query|url>","Open YouTube app"]
+        ["windows","List open windows"], ["screenshot","Take a screenshot"], ["youtube <query|url>","Open YouTube app"], ["apps","Open the app launcher"]
       ]],
       ["Fun", [
         ["cowsay <text>","Cow says text"], ["fortune","Random quote"], ["joke","Programmer joke"],
@@ -1079,6 +1688,12 @@
         break;
       }
       case "notify": if(api){ api.notify("Terminal", arg || "Hello!"); printLine("Notification sent."); } break;
+      case "apps": {
+        if(!api){ printLine("apps: window manager unavailable."); break; }
+        api.openLauncher();
+        printLine("Opening app launcher…");
+        break;
+      }
       case "matrix": if(api){ api.playMatrixRain(4000); printLine("Wake up, Neo…"); } break;
       case "open": {
         const keys = ["about","projects","skills","experience","contact","certificates","readme"];
@@ -1318,7 +1933,7 @@
     notify, showVolumeOSD, takeScreenshot,
     setTheme, setGaps, toggleBlurMode, setBlurMode,
     wmSnapFocused, wmListWindows, openFileWindow, wmFocus, playMatrixRain,
-    openYoutubeWindow, ytPlay, ytSearch
+    openYoutubeWindow, ytPlay, ytSearch, openLauncher, openApp
   };
   window.addEventListener("message", (e)=>{
     if(e.data === "wm-close-terminal"){

@@ -23,7 +23,7 @@
     <div class="login-date" id="login-date">Sat, Sep 5</div>
   </div>
   <div class="login-card">
-    <div class="login-avatar">△</div>
+    <div class="login-avatar"><img src="assets/arch-logo.png" alt="Arch Linux" width="52" height="52" class="login-avatar-img"></div>
     <div class="login-user">dazai</div>
     <input type="password" id="login-pass" class="login-pass" placeholder="Password" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Password (any value works)">
     <button class="login-btn" id="login-btn">Log In</button>
@@ -39,13 +39,6 @@
   <div class="topbar">
     <div class="topbar-left">
       <span class="brand">BAD APPLE</span>
-      <div class="workspaces" id="ws-pills" role="tablist" aria-label="Workspaces">
-        <button class="ws-pill active" data-ws="1" title="Home" role="tab" aria-selected="true">1</button>
-        <button class="ws-pill" data-ws="2" title="Portfolio" role="tab" aria-selected="false">2</button>
-        <button class="ws-pill" data-ws="3" title="Terminal" role="tab" aria-selected="false">3</button>
-        <button class="ws-pill" data-ws="4" title="Files" role="tab" aria-selected="false">4</button>
-        <button class="ws-pill" data-ws="5" title="Dashboard" role="tab" aria-selected="false">5</button>
-      </div>
       <span class="topbar-path">~/portfolio</span>
     </div>
     <div class="topbar-right">
@@ -181,9 +174,15 @@
 
         <div class="wm-contextmenu" id="wm-contextmenu" hidden></div>
 
+        <div class="wm-launcher" id="wm-launcher" hidden></div>
+
         <div class="wm-flash" id="wm-flash"></div>
 
         <div class="ws1-dock">
+          <button class="dock-btn ico-square" id="ws1-dock-launcher" title="Applications">
+            <img src="assets/apps.png" alt="Applications" class="dock-icon-img" width="26" height="26">
+          </button>
+          <div class="dock-sep"></div>
           <button class="dock-btn ico-square" id="ws1-dock-terminal" title="Terminal">
             <img src="assets/terminal.png" alt="Terminal" class="dock-icon-img" width="26" height="26">
           </button>
